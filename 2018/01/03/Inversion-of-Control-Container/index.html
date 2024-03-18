@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="Vick">
+
+
+
+    <meta name="description" content="InfinitasReset">
+
+
+
+
+
+<title>Inversion of Control | InfinitasReset</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/menu.js"></script>
+    
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="InfinitasReset" type="application/atom+xml">
+</head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">
+          
+            Frame.
+          
+        </a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/">Home</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/archives/">Archive</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/tags/">Tag</a>
+              </li> 
+                   
+          
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="tag-list">
+            
+        </div>
+        <div class="post-title">
+            
+            
+                Inversion of Control
+            
+            
+        </div>
+        <span class="post-date">
+            1月 3, 2018
+        </span>
+    </div>
+    <div class="post-img">
+        
+            <div class="h-line-primary"></div>
+              
+    </div>
+</div>
+    <div class="post-content">
+    <blockquote>
+<p><a href="https://zh.wikipedia.org/wiki/%E6%8E%A7%E5%88%B6%E5%8F%8D%E8%BD%AC" target="_blank" rel="noopener">Inversion of Control</a> 中文翻译为“控制反转”，是面向对象编程中的一种设计原则。用来降低程序代码之间的耦合度。其中最常见的方式叫做依赖注入（Dependency Injection，简称DI），还有一种方式叫“依赖查找”（Dependency Lookup）。通过控制反转，对象在被创建的时候，由一个调控系统内所有对象的外界实体，将其所依赖的对象的引用传递给它。也可以说，依赖被注入到对象中</p>
+</blockquote>
+<h2 id="理解控制反转"><a href="#理解控制反转" class="headerlink" title="理解控制反转"></a>理解控制反转</h2><p>假设有个老板需要一个才华特别好的人帮助他做事，于是直接命令小张帮忙。示例如下。</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//类 A 需要用到类 B。直觉做法。</span></span><br><span class="line"><span class="class"><span class="keyword">Class</span> <span class="title">Boss</span> </span>&#123;</span><br><span class="line">true<span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">doSomething</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">truetrue$b = <span class="keyword">new</span> B();</span><br><span class="line">truetrue$b-&gt;doSomething();</span><br><span class="line">true&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">Class</span> <span class="title">XiaoZhang</span> </span>&#123;</span><br><span class="line">true<span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">doSomething</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">truetrue<span class="keyword">echo</span> <span class="string">"Hello World!"</span>;</span><br><span class="line">true&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>老板果然牛逼，老板直接控制小张干活。但是有一点不好的在于，如果小张跑路了咋办呢？为了解决这个问题，老板特地建了一个人才库，由人才库向老板输出人才，来完成事物。</p>
+<p>由此可知：</p>
+<ul>
+<li>老板直接控制小张干活，即在代码中体现为应用程序主动寻求外部资源，应用程序是老大。</li>
+<li>老板等待人才库注入人才。即在代码中 IoC 容器先获取需要的实例，然后再反向注入到应用程序。应用程序被动等待。</li>
+<li>老板由主动转为被动，即为控制反转。</li>
+</ul>
+<h2 id="实现方式"><a href="#实现方式" class="headerlink" title="实现方式"></a>实现方式</h2><h3 id="依赖注入"><a href="#依赖注入" class="headerlink" title="依赖注入"></a>依赖注入</h3><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//基于接口实现依赖注入，老板不再依赖小张</span></span><br><span class="line"><span class="class"><span class="keyword">Class</span> <span class="title">Boss</span> </span>&#123;</span><br><span class="line">true<span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">doSomething</span><span class="params">(niuren $b)</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">truetrue$b-&gt;doSomething();</span><br><span class="line">true&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">interface</span> <span class="title">niuren</span> </span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">Class</span> <span class="title">XiaoZhang</span> <span class="title">implement</span> <span class="title">niuren</span></span>&#123;</span><br><span class="line">true<span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">doSomething</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">truetrue<span class="keyword">echo</span> <span class="string">"Hello World!"</span>;</span><br><span class="line">true&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="依赖查找"><a href="#依赖查找" class="headerlink" title="依赖查找"></a>依赖查找</h3><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//使用容器等控制系统，主动解析获取对象</span></span><br><span class="line"><span class="class"><span class="keyword">Class</span> <span class="title">Boss</span> </span>&#123;</span><br><span class="line">true<span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">doSomething</span><span class="params">(B $b)</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">truetrue$b-&gt;doSomething();</span><br><span class="line">true&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">Class</span> <span class="title">XiaoZhang</span> </span>&#123;</span><br><span class="line">true<span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">doSomething</span><span class="params">()</span></span></span><br><span class="line"><span class="function">	</span>&#123;</span><br><span class="line">truetrue<span class="keyword">echo</span> <span class="string">"Hello World!"</span>;</span><br><span class="line">true&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">Class</span> <span class="title">Container</span> </span>&#123;</span><br><span class="line">true<span class="comment">//获取实例</span></span><br><span class="line">true<span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">get</span><span class="params">()</span></span>&#123;&#125;</span><br><span class="line">true<span class="comment">//绑定实例</span></span><br><span class="line">true<span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">bind</span><span class="params">($abstract, $contern)</span></span>&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">$container = <span class="keyword">new</span> Container();</span><br><span class="line">$container-&gt;bind(<span class="string">'xz'</span>, <span class="function"><span class="keyword">function</span><span class="params">()</span> </span>&#123;</span><br><span class="line">true<span class="keyword">return</span> <span class="keyword">new</span> XiaoZhang();</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">$xiaozhang = $container-&gt;get(<span class="string">'xz'</span>);</span><br><span class="line"></span><br><span class="line">$boss = <span class="keyword">new</span> Boss();</span><br><span class="line">$boss-&gt;doSomething($xiaozhang);![]()</span><br></pre></td></tr></table></figure>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>以上两种方法都是为了代码解耦。</p>
+<ul>
+<li>依赖注入不需要了解自身依赖具体哪个类，只要所依赖的类实现了自身需要的方法即可。</li>
+<li>依赖查找即提供一种调控系统，实现依赖解析、依赖注入、依赖绑定。</li>
+</ul>
+
+</div> 
+
+<script>
+    window.onload = detectors();
+</script>
+    <div class="post-footer">
+    <div class="h-line-primary"></div>
+    <nav class="post-nav">
+        <div class="prev-item">
+           
+                <div class="icon arrow-left"></div>
+                <div class="post-link">
+                    <a href="/2019/03/01/MySQL-字符串加索引的方法/">Prev</a>
+                </div>
+            
+        </div>
+        <div class="next-item">
+            
+                <div class="icon arrow-right"></div>
+                <div class="post-link">
+                  <a href="/2017/12/21/PHP-Auto-Loader/">Next</a>  
+                </div>  
+            
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="post-comment">
+
+     
+
+    
+        <div id="disqus_thread"></div>
+        <script>
+            /**
+            *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+            *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+            
+            var disqus_config = function () {
+                this.page.url = 'https://www.infinitasreset.top/2018/01/03/Inversion-of-Control-Container/';  // Replace PAGE_URL with your page's canonical URL variable
+                this.page.identifier = '2018/01/03/Inversion-of-Control-Container/'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                this.language = 'en'
+            };
+            
+            (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+            s.src = 'https://vickworld.disqus.com/';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>   
+     
+    
+    
+
+</div>
+     
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+            
+            
+                Powered by <a href="https://hexo.io/">Hexo</a> & <a href="https://github.com/zoeingwingkei/frame/">Frame</a>
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    
+    
+
+  </body>
+</html>

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="Vick">
+
+
+
+    <meta name="description" content="InfinitasReset">
+
+
+
+
+
+<title>MySQL-更新语句怎么执行的 | InfinitasReset</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/menu.js"></script>
+    
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="InfinitasReset" type="application/atom+xml">
+</head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">
+          
+            Frame.
+          
+        </a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/">Home</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/archives/">Archive</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/tags/">Tag</a>
+              </li> 
+                   
+          
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="tag-list">
+            
+                
+                    <span class="post-tag">
+                        <a href="/tags/MySQL45讲学习笔记/">
+                            MySQL45讲学习笔记
+                        </a>
+                    </span>    
+                           
+            
+        </div>
+        <div class="post-title">
+            
+            
+                MySQL-更新语句怎么执行的
+            
+            
+        </div>
+        <span class="post-date">
+            3月 5, 2019
+        </span>
+    </div>
+    <div class="post-img">
+        
+            <div class="h-line-primary"></div>
+              
+    </div>
+</div>
+    <div class="post-content">
+    <p>假设有个表T，创建语句如下：</p>
+<figure class="highlight reasonml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; create table <span class="constructor">T(ID <span class="params">int</span> <span class="params">primary</span> <span class="params">key</span>, <span class="params">c</span> <span class="params">int</span>)</span>;</span><br></pre></td></tr></table></figure>
+<p>将 ID=2 这一行的值加2：</p>
+<figure class="highlight n1ql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; <span class="keyword">update</span> T <span class="keyword">set</span> c=c+<span class="number">1</span> <span class="keyword">where</span> ID = <span class="number">2</span>;</span><br></pre></td></tr></table></figure>
+<img src="/2019/03/05/MySQL-更新语句怎么执行的/MySQL逻辑架构图.png" title="MySQL逻辑架构图">
+<p>该语句基本的执行链路如下：</p>
+<ol>
+<li>连接数据库，连接器会处理</li>
+<li>分析器会通过词法和语法分析知道这是一条更新语句</li>
+<li>优化器决定使用 ID 这个索引</li>
+<li>执行器进行具体执行，找到这一行，然后更新</li>
+</ol>
+<p>以上只是基本链路，MySQL 执行更新还涉及两个日志模块，分别是 redolog 和 binlog。</p>
+<h3 id="redo-log-重做日志"><a href="#redo-log-重做日志" class="headerlink" title="redo log (重做日志)"></a>redo log (重做日志)</h3><p>在《孔乙己》这篇文章中，酒店掌柜有个专门的黑板来记录客人的赊账记录。如果赊账的人多，他会记在黑板上，如果赊账的人过多，黑板总会记不下，掌柜一定得擦掉黑板，把赊账的记录写入专门记录赊账的记账本。</p>
+<p>如果有人赊账或还帐，掌柜一般有两种做法：</p>
+<ul>
+<li>直接记录在账本上</li>
+<li>先记录在黑板上，等空闲了再记录到账本上</li>
+</ul>
+<p>如果店里的人很多，掌柜还直接记录在账本上，那么效率一定很低，非常耽误生意。因此掌柜肯定会选择第二种做法。</p>
+<p>在 MySQL 中也有这样的问题，如果每次更新操作都需要写进磁盘，然后磁盘也要找到对应的记录，然后再更新，整个过程 IO 成本、查找成本都很高。为了解决此问题，MySQL设计者就用了类似酒店掌柜黑板的思路来提升更新效率。</p>
+<p>在 MySQL 中，redolog 就充当了黑板的角色，磁盘就是账本的角色。通过先写日志，再写磁盘来提升更新效率。其实这也是 MySQL 里经常说到的 WAL 技术，WAL 的全称是 Write-Ahead-Logging。</p>
+<p>具体来将，当有一条记录需要更新的时候：</p>
+<ul>
+<li>InnoDB 引擎先将记录写到 redo log 里面，并更新内存，这个时候就算更新完了</li>
+<li>InnoDB 引擎会在适当的时候，将这个操作记录更新到磁盘里</li>
+</ul>
+<p>redo log 是固定大小的，比如可以配置成为一组 4 个文件，每个文件大小是 1GB，那么可以记录 4GB 的操作。从头开始写，写到末尾又回到开头循环写。如下图所示。</p>
+<img src="/2019/03/05/MySQL-更新语句怎么执行的/redolog循环写.png" title="redolog循环写">
+<ul>
+<li>wirte pos 是当前记录的位置，边写边后移，写到 3 号文件末尾后就回到 0 号文件开头。</li>
+<li>checkpoint 是当前要擦除的位置，也是往后移并循环的，擦除记录前要将记录更新到数据文件。</li>
+<li>write pos 和 checkpoint 之间是空着的部分，可以用来记录新的操作。</li>
+<li>如果 write pos 追上了 checkpoint，表示 redo log 满了，这时候不能执行新的更新，得停新来先擦掉一些记录，把 checkpoint 推进一下。</li>
+</ul>
+<p>有了 redo log，InnoDB 就可以保证即使数据库发生异常重启，之前提交的记录都不会丢失，这个叫 <strong>crash-safe。</strong></p>
+<h3 id="binlog-归档日志"><a href="#binlog-归档日志" class="headerlink" title="binlog (归档日志)"></a>binlog (归档日志)</h3><p>MySQL 整体看来，其实就两块：</p>
+<ul>
+<li>一块是 Server 层，主要做的是 MySQL 功能层面的事情；</li>
+<li>一块是引擎层，负责存储相关的事宜。</li>
+</ul>
+<p>redo log 是 InnoDB 引擎特有的日志，而 Server 层也有自己的日志，称为 binlog</p>
+<p>这两种日志有以下三种不同：</p>
+<ul>
+<li>redo log 是 InnoDB 引擎特有的；binlog 是 MySQL 的 Server 层实现的，所有的引擎都可以用。</li>
+<li>redo log 是物理日志，记录的是 “在这个数据页上做了什么修改”；binlog 是逻辑日志，记录的是这个语句的原始逻辑，比如 “给 ID=2 这一行的 c 字段加 1”。</li>
+<li>redo log 是循环写的，空间固定会用完；binlog 是可以追加写入的。”追加写” 是指 binlog 文件写到一定大小后会切换到下一个，并不会覆盖以前的日志。</li>
+</ul>
+<p>所以执行器和 InooDB 引擎在执行简单的 update 语句时内部流程如下。</p>
+<img src="/2019/03/05/MySQL-更新语句怎么执行的/执行update.png" title="执行update">
+<ol>
+<li>执行器先找到引擎 ID= 2 这一行。ID 是主键，引擎直接用树搜索找到这一行。如果 ID=2 这一行所在的数据页本来就在内存中，就直接返回给执行器；否则，需要先从磁盘读入内存，然后再返回。</li>
+<li>执行器拿到引擎给的行数据，把这个值加上，比如原来是 N，现在就是 N+1，得到新的一行数据，再调用引擎借口写入这行新数据。</li>
+<li>引擎将这行新数据更新到内存中，同时这个更新操作记录到 redo log 里面，此时 redo log 处于 prepare 状态。然后告诉执行器执行完成了，随时可以提交事务。</li>
+<li>执行器生成这个操作的 binlog，并将 binlog 写入磁盘。</li>
+<li>执行器调用引擎的提交事务接口，引擎把刚刚写入的 redo log 改成提交 (commit) 状态，更新完成。</li>
+</ol>
+<p>由上可知，最后是三步将 redo log 的写入拆成了两个步骤：prepare 和 commit。这就是“两阶段提交”。</p>
+<h3 id="两阶段提交"><a href="#两阶段提交" class="headerlink" title="两阶段提交"></a>两阶段提交</h3><p>目的：是为了让两份日志之间的逻辑一致。</p>
+<p>由于 redo log 和 binlog 是两个独立的逻辑，如果不用两阶段提交，要么先写 redo log，要么先写 binlog，会出现以下状况。(仍然用前面的例子)</p>
+<ol>
+<li><p><strong>先写 redo log 后写 binlog。</strong>假设写完了 redo log，binlog 还没写完崩溃，MySQL 异常重启。由于 redo log有崩溃恢复数据的能力，所以恢复后 c 的值仍然是 1 。<br>但是由于 binlog 没写完就 crash 了，这个时候 binlog 里面就没有记录这个语句。因此之后备份日志的时候，存起来的 binlog 没有这条语句。<br>然后如果用这个 binlog 恢复临时库的话，由于这个语句的 binlog 丢失，这个临时库就会少了这一次更新，恢复出来的这一行 c 的值就是 0，与原酷的值不同。</p>
+</li>
+<li><p><strong>先写 binlog 后写 redo log。</strong>如果在 binlog 写完之后 crash，由于 redo log 还没写，崩溃恢复以后这个事务无效，所以这一行 c 的值是 0。但是 binlog 里面已经记录了 “把 c 从 0 改为 1”这个日志。所以之后 binlog 来恢复的时候就多了一个事务，恢复出来的 c 的值就是 1，与原库的值不同。</p>
+</li>
+</ol>
+<p>由上可知，不使用两阶段提交，那么数据库状态有可能和它的日志恢复出来的库状态不一致。<br>redo log 和 binlog 都可以用于表示事务提交的状态，而两阶段提交就是让两个状态保持逻辑上的一致。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><ul>
+<li>redo log 用于保证 crash-safe 能力。innodb_flush_log_at_trx_commit 这个参数设为 1 的时候，表示每次事务的 redo log 都直接持久化到磁盘。建议设为 1，可以保证 MySQL 异常重启之后数据不丢失。</li>
+<li>sync_binlog 这个参数设为 1 的时候，表示每次事务的 binlog 都持久化到磁盘。同样建议设为 1，可以保证 MySQL 异常重启后数据不丢失。</li>
+</ul>
+
+</div> 
+
+<script>
+    window.onload = detectors();
+</script>
+    <div class="post-footer">
+    <div class="h-line-primary"></div>
+    <nav class="post-nav">
+        <div class="prev-item">
+           
+                <div class="icon arrow-left"></div>
+                <div class="post-link">
+                    <a href="/2019/03/13/刷脏页机制/">Prev</a>
+                </div>
+            
+        </div>
+        <div class="next-item">
+            
+                <div class="icon arrow-right"></div>
+                <div class="post-link">
+                  <a href="/2019/03/01/MySQL-字符串加索引的方法/">Next</a>  
+                </div>  
+            
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="post-comment">
+
+     
+
+    
+        <div id="disqus_thread"></div>
+        <script>
+            /**
+            *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+            *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+            
+            var disqus_config = function () {
+                this.page.url = 'https://www.infinitasreset.top/2019/03/05/MySQL-更新语句怎么执行的/';  // Replace PAGE_URL with your page's canonical URL variable
+                this.page.identifier = '2019/03/05/MySQL-更新语句怎么执行的/'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                this.language = 'en'
+            };
+            
+            (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+            s.src = 'https://vickworld.disqus.com/';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>   
+     
+    
+    
+
+</div>
+     
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+            
+            
+                Powered by <a href="https://hexo.io/">Hexo</a> & <a href="https://github.com/zoeingwingkei/frame/">Frame</a>
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    
+    
+
+  </body>
+</html>

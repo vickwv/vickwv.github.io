@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="Vick">
+
+
+
+    <meta name="description" content="InfinitasReset">
+
+
+
+
+
+<title>笔记-分布式系统初识 | InfinitasReset</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/menu.js"></script>
+    
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="InfinitasReset" type="application/atom+xml">
+</head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">
+          
+            Frame.
+          
+        </a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/">Home</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/archives/">Archive</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/tags/">Tag</a>
+              </li> 
+                   
+          
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="tag-list">
+            
+                
+                    <span class="post-tag">
+                        <a href="/tags/分布式系统学习笔记/">
+                            分布式系统学习笔记
+                        </a>
+                    </span>    
+                           
+            
+        </div>
+        <div class="post-title">
+            
+            
+                笔记-分布式系统初识
+            
+            
+        </div>
+        <span class="post-date">
+            8月 3, 2023
+        </span>
+    </div>
+    <div class="post-img">
+        
+            <div class="h-line-primary"></div>
+              
+    </div>
+</div>
+    <div class="post-content">
+    <blockquote>
+<p>本文为左耳朵耗子《左耳听风》专栏中，关于分布式架构的学习笔记。 </p>
+</blockquote>
+<h2 id="为什么需要分布式架构"><a href="#为什么需要分布式架构" class="headerlink" title="为什么需要分布式架构"></a>为什么需要分布式架构</h2><ul>
+<li><strong>增大系统容量</strong>。随着业务量增大，单机无法满足需求，需要多台机器才能应对，所以需要垂直或水平拆分系统，变成一个分布式架构</li>
+<li><strong>加强系统可用</strong>。单体架构存在单点故障，为了提高系统的可用性，可以通过分布式系统来冗余系统，消除单点故障。</li>
+</ul>
+<h2 id="单体架构对比分布式架构"><a href="#单体架构对比分布式架构" class="headerlink" title="单体架构对比分布式架构"></a>单体架构对比分布式架构</h2><img src="/2023/08/03/分布式系统初识/单体与分布式对比图.png" title="单体与分布式对比图">
+<p>所以采用分布式系统架构后会出现很多的问题。比如：</p>
+<ul>
+<li>一个线上故障的工单会在不同的服务和不同的团队中转过来转过去。</li>
+<li>每个团队都可能成为一个潜在的 DDoS 攻击者，除非每个服务都要做好配额和限流。</li>
+<li>监控和查错变得更为复杂。除非有非常强大的监控手段。</li>
+<li>服务发现和服务治理也变得非常复杂。</li>
+</ul>
+<h3 id="如何克服分布式架构问题"><a href="#如何克服分布式架构问题" class="headerlink" title="如何克服分布式架构问题"></a>如何克服分布式架构问题</h3><ul>
+<li><strong>分布式服务的架构需要分布式的团队架构</strong>。每个服务按小团队负责，按职责分工。</li>
+<li><strong>分布式服务查错不容易。一旦出现比较严重的故障，需要整体查错</strong>。出现一个 S2 的故障，就可以看到每个团队的人都会上线。在工单系统里能看到，在故障发生的一开始，大家都在签到并自查自己的系统。如果没问题，也要在线待命（standby），等问题解决。</li>
+<li><strong>没有专职的测试人员，也没有专职的运维人员，开发人员做所有的事情</strong>。开发人员做所有事情的好处是——吃自己的狗粮（Eat Your Own Dog Food）。自己写的代码自己维护自己养，会让开发人员明白，写代码容易维护代码复杂。这样，开发人员在接需求、做设计、写代码、做工具时都会考虑到软件的长期维护性。</li>
+<li><strong>运维优先，崇尚简化和自动化。</strong> 简单说要做好 DveOps。</li>
+<li><strong>内部服务和外部服务一致。</strong> 无论是从安全方面，还是接口设计方面，无论是从运维方面，还是故障处理的流程方面，亚马逊的内部系统都和外部系统一样对待。这样做的好处是，内部系统的服务随时都可以开放出来。而且，从第一天开始，服务提供方就有对外服务的能力。</li>
+</ul>
+<h2 id="分布式系统中需要注意的技术问题"><a href="#分布式系统中需要注意的技术问题" class="headerlink" title="分布式系统中需要注意的技术问题"></a>分布式系统中需要注意的技术问题</h2><ol>
+<li><p>异构系统的不标准问题</p>
+<ul>
+<li>软件和应用不标准。不同软件、不同语言会出现不同的兼容性和不同的开发、运维、测试标准。<ul>
+<li>比如有的软件修改配置要改 conf 文件，有的是调用 API 接口。</li>
+</ul>
+</li>
+<li>通讯协议不标准<ul>
+<li>比如协议一定要有协议头和协议体。协议头定义基本协议数据，协议体才放业务数据。</li>
+<li>比如软件配置管理用 key-value 容易被滥用。</li>
+<li>好的配置分3层，底层和操作系统相关，中间层和中间件相关，最上面和业务应用相关。于是底层和中间层是不能让用户灵活修改的，而是只让用户选择。</li>
+</ul>
+</li>
+<li>数据结构不标准</li>
+<li>开发和运维的过程和方法不标准</li>
+</ul>
+</li>
+<li><p>系统架构中的服务依赖性问题<br> 分布式系统，服务存在依赖，一个服务依赖链上的某个服务挂了，也有可能导致整个服务挂。</p>
+<ul>
+<li>如果非关键业务被关键业务所依赖，会导致非关键业务变成一个关键业务。</li>
+<li>服务依赖链中，出现“木桶短板效应”——整个 SLA 由最差的那个服务所决定。</li>
+<li>需要注意，分布式架构不仅业务要做隔离，数据库也需要做隔离，不然一个非关键业务把数据库拖死，也很正常。</li>
+</ul>
+<p>这就需要服务治理了。服务治理不但需要我们定义出服务的关键程度，还需要我们定义或是描述出关键业务或服务调用的主要路径。</p>
+</li>
+<li><p>故障发生概率更大<br> 分布式系统中，由于使用的机器和服务会很多，所以故障发生的频率会比传统的单体更大。当然分布式系统故障的影响面更小，虽可被隔离，但因为机器多，出故障的概率也多。另外，因为管理复杂，而且无人知道整个架构有什么，所以容易出错。</p>
+<p> 运维团队在分布式系统下很忙，忙到每时每刻都在处理故障。很多运维团队都在监控中拼命增加指标，但监控指标应聚焦关键指标，而不是越多越好。</p>
+<p> 所谓防火胜于救火，需要考虑如何预防故障。所以我们再设计或运维系统时需要为故障考虑，即 <strong>Design for Failure</strong>。在设计时就要考虑如何减轻故障。如果无法避免，也要使用自动化的方式恢复故障，减少故障影响面。</p>
+</li>
+<li><p>多层架构运维复杂度更大。<br> 系统分为四层：基础层，平台层，应用层和接入层。</p>
+<ul>
+<li>基础层就是我们的机器、网络和存储设备等。</li>
+<li>平台层就是我们的中间件层，Tomcat、MySQL、Redis、Kafka 之类的软件。</li>
+<li>应用层就是我们的业务软件，比如，各种功能的服务。</li>
+<li>接入层就是接入用户请求的网关、负载均衡或是 CDN、DNS 这样的东西。</li>
+</ul>
+<p>对于这四层，我们需要知道：</p>
+<ul>
+<li>任何一层的问题都会导致整体的问题；</li>
+<li>没有统一的视图和管理，导致运维被割裂开来，造成更大的复杂度。</li>
+</ul>
+</li>
+</ol>
+
+</div> 
+
+<script>
+    window.onload = detectors();
+</script>
+    <div class="post-footer">
+    <div class="h-line-primary"></div>
+    <nav class="post-nav">
+        <div class="prev-item">
+           
+                <div class="icon arrow-left"></div>
+                <div class="post-link">
+                    <a href="/2023/08/05/笔记-分布式系统技术栈/">Prev</a>
+                </div>
+            
+        </div>
+        <div class="next-item">
+            
+                <div class="icon arrow-right"></div>
+                <div class="post-link">
+                  <a href="/2023/05/09/k50u-global-camera-driver/">Next</a>  
+                </div>  
+            
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="post-comment">
+
+     
+
+    
+        <div id="disqus_thread"></div>
+        <script>
+            /**
+            *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+            *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+            
+            var disqus_config = function () {
+                this.page.url = 'https://www.infinitasreset.top/2023/08/03/分布式系统初识/';  // Replace PAGE_URL with your page's canonical URL variable
+                this.page.identifier = '2023/08/03/分布式系统初识/'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                this.language = 'en'
+            };
+            
+            (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+            s.src = 'https://vickworld.disqus.com/';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>   
+     
+    
+    
+
+</div>
+     
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+            
+            
+                Powered by <a href="https://hexo.io/">Hexo</a> & <a href="https://github.com/zoeingwingkei/frame/">Frame</a>
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    
+    
+
+  </body>
+</html>

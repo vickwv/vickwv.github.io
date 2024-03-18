@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="Vick">
+
+
+
+    <meta name="description" content="InfinitasReset">
+
+
+
+
+
+<title>笔记-分布式系统关键技术-服务调度 | InfinitasReset</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/menu.js"></script>
+    
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="InfinitasReset" type="application/atom+xml">
+</head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">
+          
+            Frame.
+          
+        </a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/">Home</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/archives/">Archive</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/tags/">Tag</a>
+              </li> 
+                   
+          
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="tag-list">
+            
+                
+                    <span class="post-tag">
+                        <a href="/tags/分布式系统学习笔记/">
+                            分布式系统学习笔记
+                        </a>
+                    </span>    
+                           
+            
+        </div>
+        <div class="post-title">
+            
+            
+                笔记-分布式系统关键技术-服务调度
+            
+            
+        </div>
+        <span class="post-date">
+            8月 6, 2023
+        </span>
+    </div>
+    <div class="post-img">
+        
+            <div class="h-line-primary"></div>
+              
+    </div>
+</div>
+    <div class="post-content">
+    <blockquote>
+<p>本文为左耳朵耗子《左耳听风》专栏中，关于分布式架构的学习笔记。</p>
+</blockquote>
+<p>咱们听说过的服务治理是混合了流量调度等内容，这里只讨论服务治理。服务治理关键技术如下：</p>
+<ul>
+<li>服务关键程度</li>
+<li>服务依赖关系</li>
+<li>服务发现</li>
+<li>整个架构的版本管理</li>
+<li>服务应用生命周期全管理</li>
+</ul>
+<h2 id="服务关键程度和服务的依赖关系"><a href="#服务关键程度和服务的依赖关系" class="headerlink" title="服务关键程度和服务的依赖关系"></a>服务关键程度和服务的依赖关系</h2><p><strong>服务关键程度</strong>：要梳理和定义出服务的重要程度。需要细致地管理对业务的理解，才能定义出架构中各个服务的重要程度。</p>
+<p><strong>服务依赖关系</strong>：要梳理出服务间的依赖关系。服务依赖越多，依赖越复杂，系统就越易碎。要尽可能减少服务依赖的深度和广度，从而让服务管理更加简洁。</p>
+<h3 id="如何减少服务依赖"><a href="#如何减少服务依赖" class="headerlink" title="如何减少服务依赖"></a>如何减少服务依赖</h3><p><strong>服务的依赖关系是可以通过技术的手段来发现的</strong>，其中，Zipkin 是一个很不错的服务调用跟踪系统。这个工具可以帮你梳理服务的依赖关系，以及了解各个服务的性能。</p>
+<p><strong>微服务是服务依赖最优解的上限，而服务依赖的下限是千万不要有依赖环</strong>。<u>如果系统架构中有服务依赖环，那么表明架构设计是错误的。</u>循环依赖有很多的副作用，最大的问题是这是一种极强的耦合，会导致服务部署相当复杂和难解，而且会导致无穷尽的递归故障和一些你意想不到的问题。</p>
+<p><strong>解决服务依赖环的方案一般是，依赖倒置的设计模式</strong>。在分布式架构上，可使用第三方的服务来解决这个事。比如，通过订阅或发布消息到一个消息中间件，或是把其中的依赖关系抽到一个第三方的服务中，然后由这个第三方的服务来调用这些原本循环依赖的服务。</p>
+<h3 id="作用"><a href="#作用" class="headerlink" title="作用"></a>作用</h3><p>梳理完服务的重要程度和依赖关系后，就相当于知道了整个架构的全局。好比获取到了城市地图，可以看到城市的关键设施及主干道。再加上监控，我们就可以看到整个城市的情况。这对分布式系统非常非常关键。</p>
+<h2 id="服务状态和生命周期管理"><a href="#服务状态和生命周期管理" class="headerlink" title="服务状态和生命周期管理"></a>服务状态和生命周期管理</h2><p>有了上面的地图，<strong>就需要一个服务发现的中间件(非常关键)</strong>，帮助我们动态管理服务。有的服务会新增，有的会离开，有的会维护，所以需要一个<strong>服务注册中心</strong>，来知道这么几个事。</p>
+<ul>
+<li>有多少中服务</li>
+<li>服务的版本是什么样的？</li>
+<li>每个服务的实例数有多少，实例状态是什么样的？</li>
+<li>每个服务的状态是什么样的？是在部署中、运行中，故障中，升级中，还是再回滚中、伸缩中，或是再下线中……</li>
+</ul>
+<p>知晓服务的状态和运行情况之后，就需要对这些服务的生命周期进行管理了。服务的生命周期通常会有以下几个状态：</p>
+<ul>
+<li>Provision，代表在供应一个新的服务；</li>
+<li>Ready，表示启动成功了；</li>
+<li>Run，表示通过了服务健康检查；</li>
+<li>Update，表示在升级中；</li>
+<li>Rollback，表示在回滚中；</li>
+<li>Scale，表示正在伸缩中（可以有 Scale-in 和 Scale-out 两种）；</li>
+<li>Destroy，表示在销毁中；</li>
+<li>Failed，表示失败状态。</li>
+</ul>
+<p>这几个状态需要管理好，不然的话，无法知道这些服务在什么样的状态下。不知道在什么样的状态下，就对整个分布式架构也就无法控制了。</p>
+<p>有了这些服务的状态和生命周期的管理，以及服务的重要程度和服务的依赖关系，再加上一个服务运行状态的拟合控制（后面会提到），你一下子就有了管理整个分布式服务的手段了。</p>
+<h2 id="整个架构的版本管理"><a href="#整个架构的版本管理" class="headerlink" title="整个架构的版本管理"></a>整个架构的版本管理</h2><p>由于每个服务都有版本依赖及版本兼容性，比如 A 服务的 1.2 版本只能和 B 服务的 2.2 版本工作。<strong>所以在分布式架构中，也需要一个架构的版本，用来控制其中各个服务的版本兼容。</strong></p>
+<p>如果架构中有这样的问题，那么我们就需要一个上层架构的版本管理。这样，如果我们要回滚一个服务的版本，就可以把与之有版本依赖的服务也一起回滚掉。</p>
+<p>要做到版本管理，需要一个架构的 mainfest，一个服务清单，这个服务清单定义了所有服务的版本运行环境，其中包括但不限于：</p>
+<ul>
+<li>服务的软件版本；</li>
+<li>服务的运行环境 （环境变量、CPU、内存、可运行的节点、文件系统等）；</li>
+<li>服务运行的最大最小实例数。</li>
+</ul>
+<p>每一次变更都要被记录下来，算是架构的版本管理（亚马逊做这个事，叫 VersionSet）。</p>
+<h2 id="资源-服务调度"><a href="#资源-服务调度" class="headerlink" title="资源/服务调度"></a>资源/服务调度</h2><p>服务和资源的调度有点像操作系统。操作系统一方面把用户进程在硬件资源上进行调度，另一方面提供进程间的通信方式，可以让不同的进程在一起协同工作。服务和资源调度的过程，与操作系统调度进程的方式很相似，主要有以下一些关键技术。</p>
+<ul>
+<li>服务状态的维持和拟合。</li>
+<li>服务的弹性伸缩和故障迁移。</li>
+<li>作业和应用调度。</li>
+<li>作业工作流编排。</li>
+<li>服务编排。</li>
+</ul>
+<h3 id="服务状态的维持和拟合"><a href="#服务状态的维持和拟合" class="headerlink" title="服务状态的维持和拟合"></a>服务状态的维持和拟合</h3><p>服务状态指的是服务的运行状态（Status，上面的生命周期中的状态）。</p>
+<p>服务运行过程中，状态也是会有变化的，服务状态会有两种变化：</p>
+<ul>
+<li>没有预期的变化。比如，服务因为故障导致一些服务挂了。好的集群管理控制器应能强行维护状态，在健康实例变少的时候，控制器会把不健康的摘除，又启动几个新的，强行维护健康的实例数。</li>
+<li>预期的变化。比如，发布新版本，需要伸缩，需要回滚。集群管理控制器就应该把集群从现有状态迁移到另一个新的状态。<u>这个过程并不是一蹴而就的，集群控制器需要一步一步地向集群发送若干控制命令。这个过程叫“拟合”——从一个状态拟合到另一个状态，而且要穷尽所有的可能，玩命地不断地拟合，直到达到目的。</u></li>
+</ul>
+<p>详细说明一下，对于分布式系统的服务管理来说，当需要把一个状态变成另一个状态时，我们需要对集群进行一系列的操作。比如，当需要对集群进行 Scale 的时候，我们需要：</p>
+<ul>
+<li>先扩展出几个结点；</li>
+<li>再往上部署服务；</li>
+<li>然后启动服务；</li>
+<li>再检查服务的健康情况；</li>
+<li>最后把新扩展出来的服务实例加入服务发现中提供服务。</li>
+</ul>
+<p>可以看到，这是一个比较稳健和严谨的 Scale 过程，这需要集群控制器往生产集群中进行若干次操作。</p>
+<h3 id="服务的弹性伸缩和故障迁移"><a href="#服务的弹性伸缩和故障迁移" class="headerlink" title="服务的弹性伸缩和故障迁移"></a>服务的弹性伸缩和故障迁移</h3><p>有了服务的状态拟合的基础工作后，就可以很容易管理服务的生命周期了，甚至可以通过底层的支持进行便利的服务弹性伸缩和故障管理。</p>
+<p>弹性伸缩，涉及到以下几点：</p>
+<ul>
+<li>底层资源的伸缩；</li>
+<li>服务的自动化部署；</li>
+<li>服务的健康检查；</li>
+<li>服务发现的注册；</li>
+<li>服务流量的调度。</li>
+</ul>
+<p>故障迁移，也就是服务的某个实例出现问题时，需要自动地恢复它。对于服务来说，有两种模式，一种是宠物模式，一种是奶牛模式。</p>
+<ul>
+<li>所谓宠物模式，就是一定要救活，主要是对于 stateful 的服务。</li>
+<li>而奶牛模式，就是不用救活了，重新生成一个实例。</li>
+</ul>
+<p>对于这两种模式，在运行中也是比较复杂的，其中涉及到了：</p>
+<ul>
+<li>服务的健康监控（这可能需要一个 APM 的监控）。</li>
+<li>如果是宠物模式，需要：服务的重新启动和服务的监控报警（如果重试恢复不成功，需要人工介入）。</li>
+<li>如果是奶牛模式，需要：服务的资源申请，服务的自动化部署，服务发现的注册，以及服务的流量调度。</li>
+</ul>
+<p>弹性伸缩和故障恢复需要很相似的技术步骤，要完成这些事情并不容易，不过好在现在有 Docker 和 Kubernetes 这样的技术，就可以比较容易做这个工作。</p>
+<p>但是，需要把传统的服务迁移到 Docker 和 Kubernetes 上来，再加上更上层的对服务生命周期的控制系统的调度，我们就可以做到一个完全自动化的运维架构。</p>
+<h3 id="服务工作流和编排"><a href="#服务工作流和编排" class="headerlink" title="服务工作流和编排"></a>服务工作流和编排</h3><p>一个好的操作系统能够通过一定机制把一堆独立的工作进程给协同起来。在分布式的服务调度中，这个工作叫作编排（Orchestration）。</p>
+<p>传统的 SOA 是通过 ESB（Enterprise Service Bus）——企业服务总线来完成的。ESB 的主要功能是服务通信路由、协议转换、服务编制和业务规则应用等。<br>注意，ESB 的服务编制叫 Choreography，与我们说的 Orchestration 是不一样的。</p>
+<ul>
+<li>Orchestration 的意思是，一个服务像大脑一样来告诉大家应该怎么交互，就跟乐队的指挥一样。（查看Service-oriented Design：A Multi-viewpoint Approach，了解更多信息）。</li>
+<li>Choreography 的意思是，在各自完成专属自己的工作的基础上，怎样互相协作，就跟芭蕾舞团的舞者一样。</li>
+</ul>
+<p>在微服务中，使用更为轻量的中间件来取代 ESB 的服务编排功能。<br>简单来说，<u>这需要一个 API Gateway 或一个简单的消息队列来做相应的编排工作</u>。在 Spring Cloud 中，所有的请求都统一通过 API Gateway（Zuul）来访问内部的服务。这个和 Kubernetes 中的 Ingress 相似。</p>
+<p>关于服务的编排会直接导致一个服务编排的工作流引擎中间件的产生。通过工作流引擎，可以非常快速地将若干个服务编排起来形成一个业务流程。（ AWS 上的 Simple Workflow 服务）</p>
+
+</div> 
+
+<script>
+    window.onload = detectors();
+</script>
+    <div class="post-footer">
+    <div class="h-line-primary"></div>
+    <nav class="post-nav">
+        <div class="prev-item">
+           
+        </div>
+        <div class="next-item">
+            
+                <div class="icon arrow-right"></div>
+                <div class="post-link">
+                  <a href="/2023/08/05/笔记-分布式系统关键技术-全栈监控/">Next</a>  
+                </div>  
+            
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="post-comment">
+
+     
+
+    
+        <div id="disqus_thread"></div>
+        <script>
+            /**
+            *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+            *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+            
+            var disqus_config = function () {
+                this.page.url = 'https://www.infinitasreset.top/2023/08/06/笔记-分布式系统关键技术-服务调度/';  // Replace PAGE_URL with your page's canonical URL variable
+                this.page.identifier = '2023/08/06/笔记-分布式系统关键技术-服务调度/'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                this.language = 'en'
+            };
+            
+            (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+            s.src = 'https://vickworld.disqus.com/';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>   
+     
+    
+    
+
+</div>
+     
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+            
+            
+                Powered by <a href="https://hexo.io/">Hexo</a> & <a href="https://github.com/zoeingwingkei/frame/">Frame</a>
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    
+    
+
+  </body>
+</html>

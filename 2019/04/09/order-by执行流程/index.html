@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="Vick">
+
+
+
+    <meta name="description" content="InfinitasReset">
+
+
+
+
+
+<title>order_by执行流程 | InfinitasReset</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/menu.js"></script>
+    
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="InfinitasReset" type="application/atom+xml">
+</head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">
+          
+            Frame.
+          
+        </a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/">Home</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/archives/">Archive</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/tags/">Tag</a>
+              </li> 
+                   
+          
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="tag-list">
+            
+                
+                    <span class="post-tag">
+                        <a href="/tags/MySQL45讲学习笔记/">
+                            MySQL45讲学习笔记
+                        </a>
+                    </span>    
+                           
+            
+        </div>
+        <div class="post-title">
+            
+            
+                order_by执行流程
+            
+            
+        </div>
+        <span class="post-date">
+            4月 9, 2019
+        </span>
+    </div>
+    <div class="post-img">
+        
+            <div class="h-line-primary"></div>
+              
+    </div>
+</div>
+    <div class="post-content">
+    <p>假设有个表如下定义：</p>
+<figure class="highlight n1ql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> TABLE <span class="symbol">`t`</span> (</span><br><span class="line"><span class="symbol">`id`</span> int(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line"><span class="symbol">`city`</span> varchar(<span class="number">16</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line"><span class="symbol">`name`</span> varchar(<span class="number">16</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line"><span class="symbol">`age`</span> int(<span class="number">11</span>) <span class="keyword">NOT</span> <span class="literal">NULL</span>,</span><br><span class="line"><span class="symbol">`addr`</span> varchar(<span class="number">128</span>) DEFAULT <span class="literal">NULL</span>,</span><br><span class="line"><span class="keyword">PRIMARY</span> <span class="keyword">KEY</span> (<span class="symbol">`id`</span>),</span><br><span class="line"><span class="keyword">KEY</span> <span class="symbol">`city`</span>(<span class="symbol">`city`</span>)</span><br><span class="line">) ENGINE=InnoDB;</span><br></pre></td></tr></table></figure>
+<p>此时有条 SQL 语句：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> city,<span class="keyword">name</span>,age <span class="keyword">from</span> t <span class="keyword">where</span> city=<span class="string">'杭州'</span> <span class="keyword">order</span> <span class="keyword">by</span> <span class="keyword">name</span> <span class="keyword">limit</span> <span class="number">1000</span> ;</span><br></pre></td></tr></table></figure>
+<p>执行这条 SQL 语句可能存在两种排序，分别是全字段排序和 rowid 排序。</p>
+<h3 id="全字段排序"><a href="#全字段排序" class="headerlink" title="全字段排序"></a>全字段排序</h3><p>为避免全表扫描，需要在 city 字段增加索引。</p>
+<p>explain 命令查看这个语句的执行情况。</p>
+<img src="/2019/04/09/order-by执行流程/explain.png" width="600" height="50" title="图1使用explain命令查看语句执行情况">
+<p>根据执行情况发现，Extra 字段中到”Using filesort”表示排序，MySQL 会给每一个线程分配一块内存进行排序，称为 sort_buffer。</p>
+<p>语句执行流程：</p>
+<ol>
+<li>初始化 sort_buffer，确定放入 name、city、age 字段；</li>
+<li>从索引 city 找到第一个满足 city=’杭州’ 的主键；</li>
+<li>到主键 id 取出整行，取 name、city、age 这三个值，存入 sort_buffer 内；</li>
+<li>从索引 city，取下一个主键 id；</li>
+<li>重复步骤3、4，直到不满足查询条件为止；</li>
+<li>对 sort_buffer 中的数据按照字段 name 做快速排序；</li>
+<li>按照排序结果前 1000 行返回给客户端。</li>
+</ol>
+<img src="/2019/04/09/order-by执行流程/全字段排序示意图.jpg" width="600" height="400" title="全字段排序示意图">
+<p>以上称为<strong>全字段排序</strong>，图中排序的动作可能在内存排序，也可能需要使用外部排序，这取决于排序所需要的内存和参数 sort_buffer_size。</p>
+<p>sort_buffer_size 是 MySQL 为排序开辟的内存的大小。如果排序的数据量大于 sort_buffer_size，排序就在内存中完成，否则不得不利用磁盘临时文件辅助排序。</p>
+<h4 id="确认排序是否使用临时文件的方法"><a href="#确认排序是否使用临时文件的方法" class="headerlink" title="确认排序是否使用临时文件的方法"></a>确认排序是否使用临时文件的方法</h4><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 打开 optimizer_trace，只对本线程有效 */</span></span><br><span class="line"><span class="keyword">SET</span> optimizer_trace=<span class="string">'enabled=on'</span>;</span><br><span class="line"><span class="comment">/* @a 保存 Innodb_rows_read 的初始值 */</span></span><br><span class="line"><span class="keyword">select</span> VARIABLE_VALUE <span class="keyword">into</span> @a <span class="keyword">from</span> performance_schema.session_status <span class="keyword">where</span> variable_name = <span class="string">'Innodb_rows_read'</span>;</span><br><span class="line"> </span><br><span class="line"><span class="comment">/* 执行语句 */</span></span><br><span class="line"><span class="keyword">select</span> city, <span class="keyword">name</span>,age <span class="keyword">from</span> t <span class="keyword">where</span> city=<span class="string">'杭州'</span> <span class="keyword">order</span> <span class="keyword">by</span> <span class="keyword">name</span> <span class="keyword">limit</span> <span class="number">1000</span>;</span><br><span class="line"> </span><br><span class="line"><span class="comment">/* 查看 OPTIMIZER_TRACE 输出 */</span></span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="string">`information_schema`</span>.<span class="string">`OPTIMIZER_TRACE`</span>\G</span><br><span class="line"> </span><br><span class="line"><span class="comment">/* @b 保存 Innodb_rows_read 的当前值 */</span></span><br><span class="line"><span class="keyword">select</span> VARIABLE_VALUE <span class="keyword">into</span> @b <span class="keyword">from</span> performance_schema.session_status <span class="keyword">where</span> variable_name = <span class="string">'Innodb_rows_read'</span>;</span><br><span class="line"> </span><br><span class="line"><span class="comment">/* 计算 Innodb_rows_read 差值 */</span></span><br><span class="line"><span class="keyword">select</span> @b-@a;</span><br></pre></td></tr></table></figure>
+<p>这个方法通过查看 optimizer_trace 的结果来确认的，可以从 number_of_tmp_files 中查看是否用了临时文件。</p>
+<img src="/2019/04/09/order-by执行流程/全排序的OPTIMIZER_TRACE部分结果.png" title="全排序的 OPTIMIZER_TRACE 部分结果">
+<p>number_of_tmp_files 表示的是，排序过程中使用的临时文件数。内存放不下的时候，就需要外部排序，外部排序一般采用归并排序。<strong>MySQL 将需要排序的数据分为 12 份，每一份单独排序后存在这些临时文件中。然后将12个有序文件再合成一个大的有序文件。</strong></p>
+<p>如果 sort_buffer_size 超过了需要排序的数据量的大小，number_of_tmp_files 就是 0，表示排序可以直接在内存中完成。</p>
+<p>否则就需要放在临时文件中排序。sort_buffer_size 越小，需要分成的份数越多，number_of_tmp_files 的值就越大。</p>
+<p>examined_rows=4000，表示参与排序的行数是4000行。</p>
+<p>sort_mode 里面的 packed_additional_fields 的意思是排序过程中对字符串做了“紧凑”处理，即使 name 字段的定义是 varchar(16) ，在排序过程中还是要按照实际长度来分配空间的。</p>
+<p>这里需要注意的是，为了避免对结论造成干扰，亿把 internal_tmp_disk_storage_engine 设置成 MyISAM。否则，select @b-@a 的结果会显示为 4001。</p>
+<p>这是因为查询 OPTIMIZER_TRACE 这个表时，需要用到临时表，而 internal_tmp_disk_storage_engine 的默认值是 InnoDB。如果使用的是 InnoDB 引擎的话，把数据从临时表取出来的时候，会让 Innodb_rows_read 的值加 1。</p>
+<h3 id="rewid-排序"><a href="#rewid-排序" class="headerlink" title="rewid 排序"></a>rewid 排序</h3><p>全字段排序只对原表读了一遍，剩下的操作都在 sort_buffer 和临时文件执行。因此有个问题，如果查询要返回的字段很多的话，那么 sort_buffer 里放的字段太多，同时能容纳的行数就很少，要分成很多个临时文件，排序性能就很差。</p>
+<p>所以单行过大，效率就不好。那么如果单行过大，MySQL应该怎么处理呢？</p>
+<p>可以通过修改参数，让 MySQL 换一个算法。<br><figure class="highlight gams"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SET</span> max_length_for_sort_data <span class="comment">= 16</span></span><br></pre></td></tr></table></figure></p>
+<p>max_length_for_sort_data，是 MySQL 中专门控制用于排序的行数据的长度的一个参数(默认值为1024)。它的意思是，如果单行的长度超过这个值，MySQL 就认为单行太大，要换一个算法。</p>
+<p>city、name、age 这三个字段的定义总长度是 36，把 max_length_for_sort_data 设置为 16，则新的算法放入 sort_buffer 排序的字段只有 name 和 主键 id。</p>
+<p>由于排序结果少了 city、name 字段，就不能直接返回了。因此整个执行流程变成以下这个样子：</p>
+<ol>
+<li>初始化 sort_buffer，放入 name、id 字段；</li>
+<li>从索引 city 找到第一个满足 city=’杭州’ 的主键；</li>
+<li>到主键 id 取出整行，取 name、id  这两个值，存入 sort_buffer 内；</li>
+<li>从索引 city，取下一个主键 id；</li>
+<li>重复步骤3、4，直到不满足查询条件为止；</li>
+<li>对 sort_buffer 中的数据按照 name 排序；</li>
+<li>遍历排序结果，取前 1000 行数据，并按照 id 值，从原表中取出 city、name 和 age 三个字段返回给客户端。</li>
+</ol>
+<p>这就是 <strong>rewid 排序</strong> ，示意图如下：<br><img src="/2019/04/09/order-by执行流程/rewid排序.jpg" width="600" height="400" title="rewid排序s"></p>
+<p><strong>对比全字段排序，rewid 排序多访问了一次表的主键索引。</strong></p>
+<p>“结果集”是一个逻辑概念，实际上 MySQL 服务端从排序后的 sort_buffer 中依次取出 id，然后到原表查到 city、name 和 age 这三个字段的结果，不需要在服务端再耗费内存存储结果，是直接返回给客户端的。</p>
+<h4 id="执行-select-b-a-的结果"><a href="#执行-select-b-a-的结果" class="headerlink" title="执行 select @b-@a 的结果"></a>执行 select @b-@a 的结果</h4><img src="/2019/04/09/order-by执行流程/rowid排序的OPTIMIZER_TRACE部分输出.png" title="rowid排序的OPTIMIZER_TRACE部分输出">
+<ul>
+<li>examined_rows 还是 4000，表示排序的行数是 4000，但是 @b-@a的结果为 5000。</li>
+<li>因为这时候除了排序，还去原表取了 1000 行，所以多读了 1000 行。</li>
+<li>sort_mode 变成了 &lt;sort_key, rowid&gt;，表示参与排序的只有 name 和 id 这两个字段。</li>
+<li>number_of_tmp_files 变成 10 了，是因为这时候参与排序的行数虽然仍然是 4000 行，但是每一行都变小了，因此需要排序的总数据量就变小了，需要的临时文件也相应地变少了。</li>
+</ul>
+<h3 id="全字段排序-VS-rewid-排序"><a href="#全字段排序-VS-rewid-排序" class="headerlink" title="全字段排序 VS rewid 排序"></a>全字段排序 VS rewid 排序</h3><p>如果 MySQL 担心内存太小，会影响排序效率，就会采用 rewid 排序。这样排序过程中一次可以排序更多行，但是需要去原表取数据。</p>
+<p>如果 MySQL 认为内存足够大，会优先选择全字段排序，把需要的字段都放在 sort_buffer 中，这样排序后直接从内存返回数据，不需要再去原表取数据。</p>
+<p>这体现了 MySQL 的一个设计思想：<strong>如果内存够，就要多使用内存，减少磁盘访问。</strong></p>
+<p>对于 InnoDB 表来说，<strong>rowid 排序会要求回表多造成磁盘读，因此不会被优先选择。</strong></p>
+<p><strong>可见 MySQL 排序是一个成本比较高的操作。但是并不是所有的 order by 语句都需要排序操作的。MySQL 只所以需要生成临时表，并且在临时表上做排序操作，其原因是原来的数据是无序的。</strong></p>
+<p>如果保证从 city 这个索引的行，天然保持按 name 字段递增排序，就可以不用再排序了。</p>
+<p>如果在表上创建一个 city 和 name 的联合索引：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> t <span class="keyword">add</span> <span class="keyword">index</span> city_user(city, <span class="keyword">name</span>);</span><br></pre></td></tr></table></figure></p>
+<img src="/2019/04/09/order-by执行流程/city和name联合索引.png" width="600" height="400" title="city和name联合索引">
+<p>在这个索引中，依然可以使用树搜索的方式去定位到第一个满足 city=”杭州”的记录，并且确保了接下来按顺序去取下一条记录遍历中，只要 city 的值是杭州，name 就一定是有序的。</p>
+<p>查询流程如下：</p>
+<ol>
+<li>从索引 (city,name) 找到第一个满足 city=’杭州’条件的主键 id；</li>
+<li>到主键 id 索引取出整行，取 name、city、age 三个字段的值，作为结果集的一部分直接返回；</li>
+<li>从索引 (city,name) 取下一个记录主键 id；</li>
+<li>重复步骤 2、3，直到查到第 1000 条记录，或者是不满足 city=’杭州’条件时循环结束</li>
+</ol>
+<img src="/2019/04/09/order-by执行流程/引入(city,name)联合索引.jpg" width="600" height="400" title="引入(city,name)联合索引">
+<p>可以看出这个查询，不需要临时表，不需要排序<br><img src="/2019/04/09/order-by执行流程/explain2.png" width="600" height="60" title="引入(city,name)联合查询explain执行计划"></p>
+<p>从图中可以看到，Extra 字段中没有 Using filesort 了，也就是不需要排序了。而且由于 (city,name) 这个联合索引本身有序，所以这个查询也不用把 4000 行全都读一遍，只要找到满足条件的前 1000 条记录就可以退出了。也就是说，在我们这个例子里，只需要扫描 1000 次。</p>
+<p><strong>利用覆盖索引继续优化</strong><br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> t <span class="keyword">add</span> <span class="keyword">index</span> city_user_age(city, <span class="keyword">name</span>, age);</span><br></pre></td></tr></table></figure></p>
+<p>查询流程如下：</p>
+<ol>
+<li>从索引 (city,name,age) 找出满足第一个满足 city=’杭州’ 条件的记录，取出 city、name 和 age 三个字段的值，作为结果集的一部分直接返回；</li>
+<li>从索引 (city,name,age) 取下一个记录，同样取出这三个字段的值，作为结果集的一部分返回；</li>
+<li>重复执行步骤 2，直到不满足条件或者查到第 1000 条记录为止。</li>
+</ol>
+<img src="/2019/04/09/order-by执行流程/引入(city,name,age)联合索引后，查询语句的执行流程.jpg" width="600" height="400" title="引入(city,name,age)联合索引后 查询语句的执行流程">
+<img src="/2019/04/09/order-by执行流程/引入(city,name,age)联合索引后，查询语句的执行计划.png" width="600" height="60" title="引入(city,name,age)联合索引后 查询语句的执行计划">
+<p>Extra 字段里面多了“Using index”，表示的就是使用了覆盖索引，性能上会快很多。</p>
+
+</div> 
+
+<script>
+    window.onload = detectors();
+</script>
+    <div class="post-footer">
+    <div class="h-line-primary"></div>
+    <nav class="post-nav">
+        <div class="prev-item">
+           
+                <div class="icon arrow-left"></div>
+                <div class="post-link">
+                    <a href="/2019/06/19/Innodb-Architecture/">Prev</a>
+                </div>
+            
+        </div>
+        <div class="next-item">
+            
+                <div class="icon arrow-right"></div>
+                <div class="post-link">
+                  <a href="/2019/03/25/Count执行原理/">Next</a>  
+                </div>  
+            
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="post-comment">
+
+     
+
+    
+        <div id="disqus_thread"></div>
+        <script>
+            /**
+            *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+            *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+            
+            var disqus_config = function () {
+                this.page.url = 'https://www.infinitasreset.top/2019/04/09/order-by执行流程/';  // Replace PAGE_URL with your page's canonical URL variable
+                this.page.identifier = '2019/04/09/order-by执行流程/'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                this.language = 'en'
+            };
+            
+            (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+            s.src = 'https://vickworld.disqus.com/';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>   
+     
+    
+    
+
+</div>
+     
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+            
+            
+                Powered by <a href="https://hexo.io/">Hexo</a> & <a href="https://github.com/zoeingwingkei/frame/">Frame</a>
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    
+    
+
+  </body>
+</html>

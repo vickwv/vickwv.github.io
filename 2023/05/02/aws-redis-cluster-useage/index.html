@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="Vick">
+
+
+
+    <meta name="description" content="InfinitasReset">
+
+
+
+
+
+<title>aws memorydb for redis 对接 | InfinitasReset</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/menu.js"></script>
+    
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="InfinitasReset" type="application/atom+xml">
+</head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">
+          
+            Frame.
+          
+        </a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/">Home</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/archives/">Archive</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/tags/">Tag</a>
+              </li> 
+                   
+          
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="tag-list">
+            
+                
+                    <span class="post-tag">
+                        <a href="/tags/技术踩坑/">
+                            技术踩坑
+                        </a>
+                    </span>    
+                           
+            
+        </div>
+        <div class="post-title">
+            
+            
+                aws memorydb for redis 对接
+            
+            
+        </div>
+        <span class="post-date">
+            5月 2, 2023
+        </span>
+    </div>
+    <div class="post-img">
+        
+            <div class="h-line-primary"></div>
+              
+    </div>
+</div>
+    <div class="post-content">
+    <p>由于业务需要向海外发展，于是在 aws 服务器重新部署了一套服务。其中有使用到 aws memorydb for redis 集群服务，记录一下对接步骤。</p>
+<ol>
+<li>开通 redis 后，首先要创建安全组，允许服务器访问 endpoint。不然服务器无法访问 redis。</li>
+<li>连接 redis 需要使用 tls 协议，不然提示连接失败。默认应该连接 DB0，否则可能会提示找不到 DB。示例如下：</li>
+</ol>
+<figure class="highlight livescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## laravel database.php</span></span><br><span class="line">    <span class="string">'redis'</span> =&gt; [  </span><br><span class="line">        <span class="string">'client'</span> =&gt; env(<span class="string">'REDIS_CLIENT'</span>, <span class="string">'predis'</span>),    </span><br><span class="line">        <span class="string">'options'</span> =&gt; [</span><br><span class="line">            <span class="string">'parameters'</span> =&gt; [<span class="string">'password'</span> =&gt; env(<span class="string">'REDIS_PASSWORD'</span>, <span class="string">''</span>)],  </span><br><span class="line">        ],    </span><br><span class="line">        <span class="string">'default'</span> =&gt; [  </span><br><span class="line">            <span class="string">'host'</span> =&gt; env(<span class="string">'REDIS_HOST'</span>, <span class="string">'127.0.0.1'</span>),  </span><br><span class="line">            <span class="string">'password'</span> =&gt; env(<span class="string">'REDIS_PASSWORD'</span>, <span class="string">''</span>),  </span><br><span class="line">            <span class="string">'port'</span> =&gt; env(<span class="string">'REDIS_PORT'</span>, <span class="string">'6379'</span>),  </span><br><span class="line">            <span class="string">'database'</span> =&gt; env(<span class="string">'REDIS_DB'</span>, <span class="number">0</span>),  </span><br><span class="line">            <span class="string">'persistent'</span> =&gt; <span class="literal">true</span>,  </span><br><span class="line">            <span class="string">'scheme'</span> =&gt; env(<span class="string">'REDIS_SCHEME'</span>, <span class="string">'tls'</span>),  </span><br><span class="line">        ],</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## django-redis env</span></span><br><span class="line"><span class="comment"># rediss == redis tls</span></span><br><span class="line"><span class="attr">REDIS_URL</span>=rediss://<span class="number">127.0</span>.<span class="number">0.1</span>:<span class="number">6379</span>/<span class="number">0</span>?client_class=django_redis.client.DefaultClient&amp;ssl_cert_reqs=None&amp;ssl=<span class="literal">True</span></span><br></pre></td></tr></table></figure>
+<ol start="3">
+<li>使用 queue， queue name (hash tag) 必须要用花括号包住，为了保证每次散列都在同一个 solt。<ul>
+<li>Redis Cluster会对key使用 CRC16 算法进行hash，然后对16384取模来确定key所属的槽位（hash tag会打破这种规则）。</li>
+<li>标签是破坏上述计算规则的实现，Hash tag是一种保证多个键被分配到同一个槽位的方法。</li>
+<li>hash tag的计算规则是：取一对大括号{}之间的字符进行计算，如果key存在多对大括号，那么就取第一个左括号和第一个右括号之间的字符。如果大括号之前没有字符，则会对整个字符串进行计算。<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">project</span>:&#123;user&#125;:<span class="number">1</span>, <span class="keyword">project</span>:&#123;user&#125;:<span class="number">2</span> = 计算 <span class="keyword">project</span> user的 hash值</span><br><span class="line"><span class="keyword">project</span>&#123;&#123;bar&#125;&#125;这个key就会对&#123;bar进行hash计算</span><br><span class="line"><span class="keyword">project</span>&#123;&#125;&#123;bar&#125;会对整个字符串进行计算</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ol>
+
+</div> 
+
+<script>
+    window.onload = detectors();
+</script>
+    <div class="post-footer">
+    <div class="h-line-primary"></div>
+    <nav class="post-nav">
+        <div class="prev-item">
+           
+                <div class="icon arrow-left"></div>
+                <div class="post-link">
+                    <a href="/2023/05/09/k50u-global-camera-driver/">Prev</a>
+                </div>
+            
+        </div>
+        <div class="next-item">
+            
+                <div class="icon arrow-right"></div>
+                <div class="post-link">
+                  <a href="/2022/01/04/对象占用多少字节/">Next</a>  
+                </div>  
+            
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="post-comment">
+
+     
+
+    
+        <div id="disqus_thread"></div>
+        <script>
+            /**
+            *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+            *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+            
+            var disqus_config = function () {
+                this.page.url = 'https://www.infinitasreset.top/2023/05/02/aws-redis-cluster-useage/';  // Replace PAGE_URL with your page's canonical URL variable
+                this.page.identifier = '2023/05/02/aws-redis-cluster-useage/'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                this.language = 'en'
+            };
+            
+            (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+            s.src = 'https://vickworld.disqus.com/';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>   
+     
+    
+    
+
+</div>
+     
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+            
+            
+                Powered by <a href="https://hexo.io/">Hexo</a> & <a href="https://github.com/zoeingwingkei/frame/">Frame</a>
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    
+    
+
+  </body>
+</html>

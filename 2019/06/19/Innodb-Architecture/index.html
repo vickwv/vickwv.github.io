@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="Vick">
+
+
+
+    <meta name="description" content="InfinitasReset">
+
+
+
+
+
+<title>InnoDb-Architecture | InfinitasReset</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/menu.js"></script>
+    
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="InfinitasReset" type="application/atom+xml">
+</head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">
+          
+            Frame.
+          
+        </a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/">Home</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/archives/">Archive</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/tags/">Tag</a>
+              </li> 
+                   
+          
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="tag-list">
+            
+                
+                    <span class="post-tag">
+                        <a href="/tags/MySQL学习笔记/">
+                            MySQL学习笔记
+                        </a>
+                    </span>    
+                           
+            
+        </div>
+        <div class="post-title">
+            
+            
+                InnoDb-Architecture
+            
+            
+        </div>
+        <span class="post-date">
+            6月 19, 2019
+        </span>
+    </div>
+    <div class="post-img">
+        
+            <div class="h-line-primary"></div>
+              
+    </div>
+</div>
+    <div class="post-content">
+    <h1 id="InnoDB-In-Memory-Structures"><a href="#InnoDB-In-Memory-Structures" class="headerlink" title="InnoDB In-Memory Structures"></a>InnoDB In-Memory Structures</h1><h2 id="Buffer-Pool"><a href="#Buffer-Pool" class="headerlink" title="Buffer Pool"></a>Buffer Pool</h2><blockquote>
+<p>Buffer Pool 是内存中的一块区域，用于缓存表和索引的数据。通过将频繁访问的数据存储在此</p>
+</blockquote>
+<ul>
+<li>为了加快处理速度，Buffer Pool 允许直接从内存处理常用数据。并且在专用服务器上，高达80%的物理内存都分配给 Buffer Pool。</li>
+<li>为了提高大容量读取操作的效率，Buffer Pool 按页划分，每页可以存储多行。</li>
+<li>为了提高缓存管理的效率，InnoDB 管理 Buffer Pool 使用了 LRU 算法，该算法是用链表实现的。</li>
+<li>Buffer Pool 通过使用变种的 LRU 算法，保证很少被使用缓存及时被移除。</li>
+</ul>
+<h2 id="Buffer-Pool-LRU-Algorithm"><a href="#Buffer-Pool-LRU-Algorithm" class="headerlink" title="Buffer Pool LRU Algorithm"></a>Buffer Pool LRU Algorithm</h2><blockquote>
+<p>LRU(Least Recently Used) 算法，中文叫做最近最少使用算法，这个算法的核心就是淘汰最久未使用的数据。</p>
+</blockquote>
+<h3 id="1、基本的-LRU-算法"><a href="#1、基本的-LRU-算法" class="headerlink" title="1、基本的 LRU 算法"></a>1、基本的 LRU 算法</h3><img src="/2019/06/19/Innodb-Architecture/基本的LRU算法模型.jpg" title="图1:基本的LRU算法模型">
+<p>LRU 算法是用链表来实现的。</p>
+<ul>
+<li>图 1 的 state1 里，链表的头部是P1， 表示刚刚被访问的数据页。并且假设内存只能放下这么多数据</li>
+<li>然后有一个读请求要访问 P3 数据页，因此变成 state 2，P3 被移到头部。</li>
+<li>state 3 表示，这次访问的数据页是不存在于链表中的，所以需要在 Buffer Pool 中新申请一个数据页 Px，加到链表头部。但是由于内存已经满了，不能申请新的内存。于是，会清空链表末尾 Pm 这个数据页的内存，存入 Px 的内容，然后放到链表头部。</li>
+<li>所以最久未访问的数据页被移除了。</li>
+</ul>
+<p>假设按照这个算法，要全表扫面一个 200G 的表，而这个表是历史数据表，平时没有业务访问它。</p>
+<p>那么按照这个算法扫描的话，就会把当前 Buffer Pool 里数据全部淘汰掉，存入扫描过程中访问到的数据页内容，也就是说 Buffer Pool 里面主要放的是这个历史数据表的数据。</p>
+<p>对于一个正在做业务服务的库，十分不妙。Buffer Pool 的内存命中率会急剧下降，磁盘压力增大，SQL 语句响应变慢。</p>
+<p>所以 InnoDB 不能直接使用这个 LRU 算法，实际上，InnoDB 对 LRU 算法做了改进。</p>
+<h3 id="2、改进的-LRU-算法"><a href="#2、改进的-LRU-算法" class="headerlink" title="2、改进的 LRU 算法"></a>2、改进的 LRU 算法</h3><img src="/2019/06/19/Innodb-Architecture/改进的LRU算法模型.png" title="图2:改进的LRU算法">
+<p>InnoDB 按照 5:3 的比例把整个 LRU 链表分为了 young 区域和 old 区域。图中 LRU_old 指向的就是 old 区域的第一个位置，是整个链表的 5/8 处。也就是说靠近链表头部的 5/8 是 young 区域，靠近链表尾部的 3/8 是 old 区域。</p>
+<ul>
+<li>图 2 中的 state 1，要访问数据页 P3，由于 P3 在young 区域，因此和优化前的 LRU 算法一致，将其移到头部，编程 state 2。</li>
+<li>之后要访问一个新的不存在当前链表的数据页，这时候依然是淘汰掉数据页 Pm，但新插入的数据页 Px，放在 LRU_old 处</li>
+<li>处于 old 区域的数据页，每次被访问的时候都要做下面这个判断：<ul>
+<li>若这个数据页在 LRU 链表中存在的时间超过了 1s，就把它移动到链表头部；</li>
+<li>若这个数据页在 LRU 链表中存在的时间短于 1s，位置保持不变。1s 这个时间，由参数 innodb_old_blocks_time 控制的。其默认值是 1000，单位毫秒。</li>
+</ul>
+</li>
+</ul>
+<p>这个策略，就是为了处理类似全表扫描的操作量身定制的。以扫描 200G 的历史数据表为例，改进后的 LRU 算法的操作逻辑如下：</p>
+<ul>
+<li>扫描过程中，需要新插入的数据页，都被放到 old 区域；</li>
+<li>一个数据页有多条记录，这个数据页会被多次访问到，但由于是顺序扫描，这个数据页第一次被访问和最后一次被访问的时间间隔不会超过 1s，因此会被保留在 old 区域；</li>
+<li>再继续扫描后续的数据，之前的这个数据页之后也不会再被访问到，于是始终没有机会移到链表头部 (也就是 young 区域)，很快就会被淘汰出去。</li>
+</ul>
+<p>所以这个策略最大的收益，就是在扫描大表的过程中，虽然也用到了 Buffer Pool， 但是对 young 区域完全没有影响，从而保证了 Buffer Pool 响应正常业务的查询命中率。</p>
+
+</div> 
+
+<script>
+    window.onload = detectors();
+</script>
+    <div class="post-footer">
+    <div class="h-line-primary"></div>
+    <nav class="post-nav">
+        <div class="prev-item">
+           
+                <div class="icon arrow-left"></div>
+                <div class="post-link">
+                    <a href="/2020/01/13/mysql-cursor/">Prev</a>
+                </div>
+            
+        </div>
+        <div class="next-item">
+            
+                <div class="icon arrow-right"></div>
+                <div class="post-link">
+                  <a href="/2019/04/09/order-by执行流程/">Next</a>  
+                </div>  
+            
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="post-comment">
+
+     
+
+    
+        <div id="disqus_thread"></div>
+        <script>
+            /**
+            *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+            *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+            
+            var disqus_config = function () {
+                this.page.url = 'https://www.infinitasreset.top/2019/06/19/Innodb-Architecture/';  // Replace PAGE_URL with your page's canonical URL variable
+                this.page.identifier = '2019/06/19/Innodb-Architecture/'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                this.language = 'en'
+            };
+            
+            (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+            s.src = 'https://vickworld.disqus.com/';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>   
+     
+    
+    
+
+</div>
+     
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+            
+            
+                Powered by <a href="https://hexo.io/">Hexo</a> & <a href="https://github.com/zoeingwingkei/frame/">Frame</a>
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    
+    
+
+  </body>
+</html>

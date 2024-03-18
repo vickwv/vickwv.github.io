@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="Vick">
+
+
+
+    <meta name="description" content="InfinitasReset">
+
+
+
+
+
+<title>Count执行原理 | InfinitasReset</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/menu.js"></script>
+    
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="InfinitasReset" type="application/atom+xml">
+</head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">
+          
+            Frame.
+          
+        </a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/">Home</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/archives/">Archive</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/tags/">Tag</a>
+              </li> 
+                   
+          
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="tag-list">
+            
+                
+                    <span class="post-tag">
+                        <a href="/tags/MySQL45讲学习笔记/">
+                            MySQL45讲学习笔记
+                        </a>
+                    </span>    
+                           
+            
+        </div>
+        <div class="post-title">
+            
+            
+                Count执行原理
+            
+            
+        </div>
+        <span class="post-date">
+            3月 25, 2019
+        </span>
+    </div>
+    <div class="post-img">
+        
+            <div class="h-line-primary"></div>
+              
+    </div>
+</div>
+    <div class="post-content">
+    <p>不同的引擎有不同的实现方式：</p>
+<ul>
+<li>MyISAM 引擎把一个表的总行数放在磁盘上，因此执行 count(*) 的时候会直接返回这个数，效率很高。(如果加了过滤条件，也不能返回这么快)</li>
+<li>InnoDB 引擎需要把数据一行一行的读取出来，然后累积计数。</li>
+</ul>
+<p>InonoDB引擎由于多版本并发控制的原因，每一行都要判断自己是否对这个会话可见，所以 InnoDB 表只能把数据一行一行读出依次判断。</p>
+<p>MySQL 在执行 count(*) 的时候做了优化。InnoDB 是索引组织表，主键索引树的叶子结点是数据，而普通索引树的叶子结点是主键值。所以普通索引树比主键索引树小很多，因此 MySQL 优化器会找到最小的那颗树来遍历。<strong>在保证逻辑正确的前提下，尽量减少扫描的数据量，是数据库系统设计的通用法则之一。</strong></p>
+<p>除了 count(*)，使用 “show table status” 命令可以通过 TABLE_ROWS 拿到当前表总行数，但是这个字段是通过采样估算来的，不准确。</p>
+<h2 id="统计计数的方法"><a href="#统计计数的方法" class="headerlink" title="统计计数的方法"></a>统计计数的方法</h2><h3 id="一、用缓存系统保存计数"><a href="#一、用缓存系统保存计数" class="headerlink" title="一、用缓存系统保存计数"></a>一、用缓存系统保存计数</h3><p>可以使用 redis 服务存储计数。但是用 redis 有两个问题。一是由于redis数据是存在内存里，异常重启可能会丢失更新；二是即使 redis 正常工作，这个值在逻辑上还是不准确的。</p>
+<p>假设有一个页面，需要显示操作记录的总数，还要显示最近操作的一百条记录。那么这个页面需要先到 Redis 里面取出计数，再到数据表里面取出数据。</p>
+<p>以下两种情况逻辑上必然不准确：</p>
+<ol>
+<li>查到的 100 行结果里面有最新插入的记录，而 Redis 的计数还没加1。</li>
+<li>查到的 100 行结果里没有最新插入的记录，而 Redis 的计数已经加了1。</li>
+</ol>
+<img src="/2019/03/25/Count执行原理/redis不准确时序图.png" title="redis不准确时序图">
+<p>上图可以看出，会话 B 的读操作在T3时刻执行的，由于 redis 还没有加1，但是已经读到最新插入的记录，所以数据是不一致的。</p>
+<p>在并发系统里面，无法精确控制不同线程的执行时刻，因为存在图中的这种操作序列，所以即使 Redis 正常工作，这个计数值还是逻辑上不准确。导致数据不一致的根本原因，<strong>是由于两个不同的存储系统构成的系统，不支持分布式事务，无法拿到精准一致的视图。</strong></p>
+<p>所以如果要求计数值百分百准备，最好不要使用缓存系统保存计数。</p>
+<h3 id="二、在数据库保存计数"><a href="#二、在数据库保存计数" class="headerlink" title="二、在数据库保存计数"></a>二、在数据库保存计数</h3><p>直接在数据库建一张计数表(InnoDB引擎)。首先InnoDB引擎可以支持崩溃恢复不丢失数据，然后利用 InnoDB 事务的特性可以解决数据不准确的毛病。</p>
+
+<p>上图可以看到，会话 B 的读操作仍然是T3时刻执行的，但是因为这时候更新事务还没提交，所以计数+1对会话 B 还不可见。因此会话 B 看到的结果，查计数值和 “最近100条记录” 看到的结果逻辑上是一致的。</p>
+<h2 id="不同的-count-的用法"><a href="#不同的-count-的用法" class="headerlink" title="不同的 count 的用法"></a>不同的 count 的用法</h2><p>count() 的语义。count() 是一个聚合函数，对于返回的结果集，一行一行地判断，如果 count 函数的参数不是 NULL， 累计值就加1，否则不加。最后返回累计值。</p>
+<p>所以，count(*)、count(主键 id) 和 count(1) 都表示返回满足条件的结果集的总行数；而 count(字段），则表示返回满足条件的数据行里面，参数”字段”不为 NULL 的总个数。</p>
+<p>分析性能差距的原则：</p>
+<ol>
+<li>server 层要什么给什么</li>
+<li>InnoDB 只给必要的值</li>
+<li>现在的优化器只优化了 count(*) 的语义为”取行数”，其他”显而易见”的优化并没有做。</li>
+</ol>
+<p><strong>对于 count(主键 id)</strong>。  InnoDB 会遍历整张表，把每一行的 id 拿出来，返回给 server 层。server 层拿到 id 后，判断是不可能为空的，就按行累加。</p>
+<p><strong>对于 count(1) 来说</strong>。InnoDB 会遍历整张表，但不取值。server 层对返回的每一行，放一个数字 1 进去，判断是不可能为空的，按行累加。</p>
+<p><strong>对于 count(字段)</strong>。 </p>
+<ul>
+<li>如果这个字段定义为”not null”，一行行从记录里面读出这个字段，判断不能为 null，按行累加。</li>
+<li>如果这个字段定义为”null”，那么执行的时候，判断有可能是 null，还要把值取出来再判断一下不是 null 才累加。</li>
+</ul>
+<p><strong>对于 count(*)</strong>。并不会把全部字段取出来，而是专门做了优化，不取值。count(*) 肯定不是 null，按行累加。</p>
+<p> <strong>所以结论是：按照效率排序的话，count(字段)&lt;count(主键 id)&lt;count(1)≈count(*)，尽量使用 count(*)。</strong></p>
+
+</div> 
+
+<script>
+    window.onload = detectors();
+</script>
+    <div class="post-footer">
+    <div class="h-line-primary"></div>
+    <nav class="post-nav">
+        <div class="prev-item">
+           
+                <div class="icon arrow-left"></div>
+                <div class="post-link">
+                    <a href="/2019/04/09/order-by执行流程/">Prev</a>
+                </div>
+            
+        </div>
+        <div class="next-item">
+            
+                <div class="icon arrow-right"></div>
+                <div class="post-link">
+                  <a href="/2019/03/17/数据库表的空间回收/">Next</a>  
+                </div>  
+            
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="post-comment">
+
+     
+
+    
+        <div id="disqus_thread"></div>
+        <script>
+            /**
+            *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+            *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+            
+            var disqus_config = function () {
+                this.page.url = 'https://www.infinitasreset.top/2019/03/25/Count执行原理/';  // Replace PAGE_URL with your page's canonical URL variable
+                this.page.identifier = '2019/03/25/Count执行原理/'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                this.language = 'en'
+            };
+            
+            (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+            s.src = 'https://vickworld.disqus.com/';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>   
+     
+    
+    
+
+</div>
+     
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+            
+            
+                Powered by <a href="https://hexo.io/">Hexo</a> & <a href="https://github.com/zoeingwingkei/frame/">Frame</a>
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    
+    
+
+  </body>
+</html>

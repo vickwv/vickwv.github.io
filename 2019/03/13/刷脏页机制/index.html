@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="Vick">
+
+
+
+    <meta name="description" content="InfinitasReset">
+
+
+
+
+
+<title>刷脏页机制 | InfinitasReset</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/menu.js"></script>
+    
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="InfinitasReset" type="application/atom+xml">
+</head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">
+          
+            Frame.
+          
+        </a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/">Home</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/archives/">Archive</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/tags/">Tag</a>
+              </li> 
+                   
+          
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="tag-list">
+            
+                
+                    <span class="post-tag">
+                        <a href="/tags/MySQL45讲学习笔记/">
+                            MySQL45讲学习笔记
+                        </a>
+                    </span>    
+                           
+            
+        </div>
+        <div class="post-title">
+            
+            
+                刷脏页机制
+            
+            
+        </div>
+        <span class="post-date">
+            3月 13, 2019
+        </span>
+    </div>
+    <div class="post-img">
+        
+            <div class="h-line-primary"></div>
+              
+    </div>
+</div>
+    <div class="post-content">
+    <h3 id="什么是脏页？"><a href="#什么是脏页？" class="headerlink" title="什么是脏页？"></a>什么是脏页？</h3><p>InnoDb 在执行更新语句的时候，是先写日志(redo log)，再更新内存，然后告诉客户端更新完成了。此时内存和磁盘的数据是不一致的。<br><strong>所以当内存数据页跟磁盘数据页不一致的时候，称这个内存也为“脏页”。内存数据写入到磁盘后，内存和磁盘上的数据页的内容一致的时候，称之为“干净页”</strong>。</p>
+<h3 id="什么时候刷脏页？"><a href="#什么时候刷脏页？" class="headerlink" title="什么时候刷脏页？"></a>什么时候刷脏页？</h3><p>将内存上的数据写入到磁盘，称为刷脏页(flush)。</p>
+<p>以下 MySQL 可能刷脏页的时机：</p>
+<ol>
+<li><p>InnoDB redo log 写满了。这时候系统会停止所有的更新操作，把 checkpoint 往前推进，redo log 留出空间继续写。下图展示了 checkpoint 从 CP 推进到 CP’，需要将两点的日志，对应的脏页全部 flush 到磁盘上。</p>
+<img src="/2019/03/13/刷脏页机制/redolog状态图.jpg" title="redolog状态图">
+</li>
+<li><p>系统内存不足。当需要新的内存页，而内存不够用的时候，就要淘汰一些数据页，空出内存给别的数据页使用。如果淘汰的是“脏页”，就要先将脏页写到磁盘。但不会直接淘汰内存，因为刷脏页必定写盘，写盘就保证了数据页只有两种状态：</p>
+<ul>
+<li>一种是内存里存在，内存里肯定是最正确的结果，直接返回</li>
+<li>另一种是内存里没有数据，就可以肯定数据文件上是正确的结果，读入内存后返回。这样效率最高。</li>
+</ul>
+</li>
+<li><p>MySQL 认为系统“空闲”的时候。MySQL 会利用空闲时间刷脏页，见缝插针。</p>
+</li>
+<li><p>MySQL 正常关闭的时候。这时 MySQL 会将所有的脏页都 flash 到磁盘上，这样下次启动 MySQL 的时候，就可以直接从磁盘读取数据，启动速度会很快。</p>
+</li>
+</ol>
+<p><strong>四种场景对性能的影响</strong></p>
+<ul>
+<li><p>第一种 “redo log 写满了，要 flush 脏页”。这种情况 InnoDB要尽量避免的。因为这出现这种情况的时候，整个系统都不能再接受更新了，所有的更新必须堵住。</p>
+</li>
+<li><p>第二种 ”内存不够用了，要先将脏页写进磁盘“。这种情况是常态。<strong>InnoDB 用缓冲池 (buffer pool) 管理内存，缓冲池中的内存页有三种状态：</strong></p>
+<ul>
+<li>第一种，还没有使用</li>
+<li>第二种，使用了并且是干净页</li>
+<li>第三种，使用了并且是脏页</li>
+</ul>
+<p>InnoDB 的策略是尽量使用内存，因此对于一个长时间运行的库来说，未被使用的页面很少。</p>
+<p>当要读入的数据页没有在内存的时候，就必须要缓冲池申请一个数据页。这时候只能将最久不使用的数据页从内存中淘汰掉；如果是要淘汰一个干净页，就直接释放出来复用；但如果是脏页，就必须将脏页先刷到磁盘，变成干净页才能复用。</p>
+<p>所以刷脏页虽然是常态，但是出现以下两种情况，都是会明显影响性能的：</p>
+<ol>
+<li>一个查询要淘汰的脏页过多，会导致查询的响应时间明显变长。</li>
+<li>日志写满，更新全部堵住，写性能跌为0，这种情况对敏感业务是不能接受的。</li>
+</ol>
+<p>所以需要有控制脏页比例的机制，来避免以上两种情况。</p>
+</li>
+</ul>
+<h3 id="InnoDB-刷脏页的控制策略"><a href="#InnoDB-刷脏页的控制策略" class="headerlink" title="InnoDB 刷脏页的控制策略"></a>InnoDB 刷脏页的控制策略</h3><ol>
+<li><p>正确告诉 InnoDB 所在主机的 IO 能力。通过设置 innodb_io_capacity 参数，告诉 InnoDB 磁盘能力。这个值建议设置为磁盘的 IOPS。可以使用 fio 工具测试磁盘的随机读写的能力。</p>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fio <span class="attribute">-filename</span>=<span class="variable">$filename</span> <span class="attribute">-direct</span>=1 -iodepth 1 -thread <span class="attribute">-rw</span>=randrw <span class="attribute">-ioengine</span>=psync <span class="attribute">-bs</span>=16k <span class="attribute">-size</span>=500M <span class="attribute">-numjobs</span>=10 <span class="attribute">-runtime</span>=10 -group_reporting <span class="attribute">-name</span>=mytest</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>控制 InnoDB 刷盘速度。InnoDB 是根据脏页比例、redo log 写盘速度来控制刷脏页的速度。</p>
+<p>InnoDB 会根据两个因素单独先算出两个数字。</p>
+<p>参数 innodb_max_dirty_pages_pct 是脏页比例上限，默认值是 75% 。InnoDB 会根据当前的脏页比例 (假设为M) ，算出一个范围在0~100之间的数组，计算这个数据伪码如下：</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">F1(M)</span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">if</span> M&gt;=innodb_max_dirty_pages_pct then</span><br><span class="line">      <span class="keyword">return</span> <span class="number">100</span>;</span><br><span class="line">  <span class="keyword">return</span> <span class="number">100</span>*M/innodb_max_dirty_pages_pct;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>InnoDB 每次写入的日志都有一个序号，当前写入的序号跟 checkpoint 对应的序号之间的差值，假设为N。</p>
+<p>InnoDB 会根据 N 算出在 0~100的数字，这个计算公式记为 F2(N)。F2(N) 算法复杂，但是 N 越大，算出来的值越大。</p>
+<p><strong>然后，根据上述算得的 F1(M) 和 F2(N) 两个值，取其中较大的值记为 R ，之后引擎可以按照 innodb_io_capacity 定义的能力乘以 R% 来控制脏页的速度。</strong></p>
+
+</li>
+</ol>
+<p>InnoDB 会在后台刷脏页，而刷脏页的过程是将内存页写入磁盘。所以无论是查询语句在需要内存的时候可能要求淘汰一个脏页，还是由于刷脏页的逻辑会占用 IO 资源并可能影响到更新语句，都可能造成从业务端感知数据库突然变慢。</p>
+<p><strong>要尽量合理避免这种情况，就要合理设置 Innodb_io_capacity 的值，并且平时要多关注脏页比例，不要让它接近于 75%</strong></p>
+<p>脏页比例是通过 Innodb_buffer_pool_pages_dirty/Innodb_buffer_pool_pages_total 得到的，具体代码如下：</p>
+<figure class="highlight n1ql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; <span class="keyword">select</span> VARIABLE_VALUE <span class="keyword">into</span> @a <span class="keyword">from</span> global_status <span class="keyword">where</span> VARIABLE_NAME = <span class="string">'Innodb_buffer_pool_pages_dirty'</span>;</span><br><span class="line"><span class="keyword">select</span> VARIABLE_VALUE <span class="keyword">into</span> @b <span class="keyword">from</span> global_status <span class="keyword">where</span> VARIABLE_NAME = <span class="string">'Innodb_buffer_pool_pages_total'</span>;</span><br><span class="line"><span class="keyword">select</span> @a/@b;</span><br></pre></td></tr></table></figure>
+<p><strong>“连坐”策略</strong></p>
+<p>InnoDB 在刷脏页的时候，如果发现当前数据页旁边的那个数据页也是脏页，就会连带着一起刷掉；这种情况会蔓延，如果邻居的邻居也是脏页，也会一起刷。</p>
+<p>在 InnoDB 中，Innodb_flush_neighbors 参数可以控制该行为，值为1的时候会有上述”连坐”机制，值为0的时候表示自己刷自己的，不帮邻居刷了。</p>
+<p>找“邻居”这种行为，在机械硬盘时代很有意义，可以减少很多随机IO。现在如果使用 SSD 或者 IOPS 比较高的设备，建议将 Innodb_flush_neithbors 设为0，在 MySQL 8.0 已经默认为 0。</p>
+
+</div> 
+
+<script>
+    window.onload = detectors();
+</script>
+    <div class="post-footer">
+    <div class="h-line-primary"></div>
+    <nav class="post-nav">
+        <div class="prev-item">
+           
+                <div class="icon arrow-left"></div>
+                <div class="post-link">
+                    <a href="/2019/03/15/全局锁和表锁/">Prev</a>
+                </div>
+            
+        </div>
+        <div class="next-item">
+            
+                <div class="icon arrow-right"></div>
+                <div class="post-link">
+                  <a href="/2019/03/05/MySQL-更新语句怎么执行的/">Next</a>  
+                </div>  
+            
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="post-comment">
+
+     
+
+    
+        <div id="disqus_thread"></div>
+        <script>
+            /**
+            *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+            *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+            
+            var disqus_config = function () {
+                this.page.url = 'https://www.infinitasreset.top/2019/03/13/刷脏页机制/';  // Replace PAGE_URL with your page's canonical URL variable
+                this.page.identifier = '2019/03/13/刷脏页机制/'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                this.language = 'en'
+            };
+            
+            (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+            s.src = 'https://vickworld.disqus.com/';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>   
+     
+    
+    
+
+</div>
+     
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+            
+            
+                Powered by <a href="https://hexo.io/">Hexo</a> & <a href="https://github.com/zoeingwingkei/frame/">Frame</a>
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    
+    
+
+  </body>
+</html>

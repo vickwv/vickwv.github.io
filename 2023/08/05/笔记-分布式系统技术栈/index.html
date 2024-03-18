@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="Vick">
+
+
+
+    <meta name="description" content="InfinitasReset">
+
+
+
+
+
+<title>笔记-分布式系统技术栈 | InfinitasReset</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/menu.js"></script>
+    
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="InfinitasReset" type="application/atom+xml">
+</head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">
+          
+            Frame.
+          
+        </a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/">Home</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/archives/">Archive</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/tags/">Tag</a>
+              </li> 
+                   
+          
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="tag-list">
+            
+                
+                    <span class="post-tag">
+                        <a href="/tags/分布式系统学习笔记/">
+                            分布式系统学习笔记
+                        </a>
+                    </span>    
+                           
+            
+        </div>
+        <div class="post-title">
+            
+            
+                笔记-分布式系统技术栈
+            
+            
+        </div>
+        <span class="post-date">
+            8月 5, 2023
+        </span>
+    </div>
+    <div class="post-img">
+        
+            <div class="h-line-primary"></div>
+              
+    </div>
+</div>
+    <div class="post-content">
+    <blockquote>
+<p>本文为左耳朵耗子《左耳听风》专栏中，关于分布式架构的学习笔记。 </p>
+</blockquote>
+<p>构建分布式系统目的是增加系统容量，提高系统的可用性，转换成技术方面，完成以下两件事。</p>
+<ul>
+<li>大流量处理。通过集群技术把并发分摊到不同的机器上。<ul>
+<li>实际就是<strong>提高架构性能</strong>，提高整体架构吞吐量，服务更多的并发和流量</li>
+</ul>
+</li>
+<li>关键业务保护。提高服务的可用性，故障隔离阻止多米诺骨牌效应。如果流量过大，需要对业务降级，保护关键业务流转。<ul>
+<li>实际就是<strong>提高架构稳定性</strong>，让系统的可用性更高。</li>
+</ul>
+</li>
+</ul>
+<p>对于一般公司来说，在初期，会使用读写分离的数据镜像方式，而后期会采用分库分表的方式。</p>
+<h2 id="提高架构性能的技术"><a href="#提高架构性能的技术" class="headerlink" title="提高架构性能的技术"></a>提高架构性能的技术</h2><img src="/2023/08/05/笔记-分布式系统技术栈/提高架构性能.png" title="提高架构性能">
+<ul>
+<li>缓存技术。可有效提高系统的访问能力，提高访问能力最有效手机。从前端的浏览器，到网络，再到后端服务，底层的数据库、文件系统、硬盘和 CPU，全都有缓存。分布式系统下，需要缓存集群，这也需要 Proxy 来做缓存的分片和路由。</li>
+<li>负载均衡系统。水平拓展的关键技术，使用多台机器来分担流量。</li>
+<li>异步调用。利用消息队列对请求做排队处理。可增加系统的吞吐量，但实用性就差了，同时会引入消息丢失的问题，所以要对消息做持久化。</li>
+<li>数据分区和数据镜像。<strong>数据分区</strong>是把数据按一定的方式分成多个区（比如通过地理位置），不同的数据区来分担不同区的流量。这需要一个数据路由的中间件，会导致跨库的 Join 和跨库的事务非常复杂。而<strong>数据镜像</strong>是把一个数据库镜像成多份一样的数据，这样就不需要数据路由的中间件了。你可以在任意结点上进行读写，内部会自行同步数据。然而，数据镜像中最大的问题就是数据的一致性问题。</li>
+</ul>
+<h2 id="提高架构稳定性技术"><a href="#提高架构稳定性技术" class="headerlink" title="提高架构稳定性技术"></a>提高架构稳定性技术</h2><img src="/2023/08/05/笔记-分布式系统技术栈/提高架构的稳定性.png" title="提高架构的稳定性">
+<ul>
+<li>服务拆分。主要两个目的：一是为了故障隔离，二是为了重用服务模块。拆分后会引入服务间依赖问题。</li>
+<li>服务冗余。解决单点故障，并支持弹性伸缩，故障迁移。对于有状态的服务，冗余带来了更高的复杂性；还有弹性伸缩要考虑数据的复制或重新分片，迁移的时候还要迁移数据到其它机器。</li>
+<li>限流降级。系统实在扛不住压力时，只能通过限流拒绝一部分业务或功能降级的方式停掉一部分服务，以确保整个架构不会挂掉。</li>
+<li>高可用架构。通常从冗余架构的角度来保障可用性。比如，多租户隔离，灾备多活，或是数据可以在其中复制保持一致性的集群。总之，就是为了不出单点故障。</li>
+<li>高可用运维。指的是 DevOps 中的 CI/CD（持续集成 / 持续部署）。一个良好的运维应该是一条很流畅的软件发布管线，其中做了足够的自动化测试，还可以做相应的灰度发布，以及对线上系统的自动化控制。这样，可以做到“计划内”或是“非计划内”的宕机事件的时长最短。</li>
+</ul>
+<p>这些技术非常有技术含量，而且需要投入大量的时间和精力。</p>
+<h2 id="解决分布式带来的技术问题"><a href="#解决分布式带来的技术问题" class="headerlink" title="解决分布式带来的技术问题"></a>解决分布式带来的技术问题</h2><p>引入分布式系统，会引入一堆技术问题，需要从以下几个方面来解决。</p>
+<ul>
+<li><p>服务治理。意义在于需要把服务间的依赖关系，调用链，及关键服务梳理出来，并进行性能和可用性方面的管理。</p>
+</li>
+<li><p>架构软件管理。服务之间有依赖，而且有兼容性问题，所以，<u>整体服务所形成的架构需要有架构版本管理、整体架构的生命周期管理，以及对服务的编排、聚合、事务处理等服务调度功能</u>。</p>
+</li>
+<li><p>DevOps。分布式系统可以更为快速地更新服务，但是对于服务的测试和部署都会是挑战。所以，还需要 DevOps 的全流程，其中包括环境构建、持续集成、持续部署等。</p>
+</li>
+<li><p>自动化运维。有了 DevOps 后，就可以对服务进行自动伸缩、故障迁移、配置管理、状态管理等一系列的自动化运维技术了。</p>
+</li>
+<li><p>资源调度管理。应用层的自动化运维需要基础层的调度支持，也就是云计算 IaaS 层的计算、存储、网络等资源调度、隔离和管理。</p>
+</li>
+<li><p>整体架构监控。<u>如果没有一个好的监控系统，那么自动化运维和资源调度管理只可能成为一个泡影，因为监控系统是你的眼睛</u>。没有眼睛，没有数据，就无法进行高效运维。所以说，监控是非常重要的部分。这里的监控需要对三层系统（应用层、中间件层、基础层）进行监控。</p>
+</li>
+<li><p>流量控制。最后是我们的流量控制，负载均衡、服务路由、熔断、降级、限流等和流量相关的调度都会在这里，包括灰度发布之类的功能也在这里。</p>
+</li>
+</ul>
+<p>分布式中最大的坑，要做好以上这么多技术或具备这么多的能力。不过可通过 Docker 以及其衍生出来的 Kubernetes 之类的软件或解决方案，大大地降低了做上面很多事情的门槛。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>分布式系统五个关键技术：</p>
+<img src="/2023/08/05/笔记-分布式系统技术栈/分布式系统关键技术总结.png" title="分布式系统关键技术总结">
+<ul>
+<li>全栈系统监控</li>
+<li>服务 / 资源调度</li>
+<li>流量调度</li>
+<li>状态 / 数据调度（数据方面分布式处理）</li>
+<li>开发和运维的自动化</li>
+</ul>
+<p>最后一项——开发和运维的自动化，是需要把前四项都做到了，才有可能实现的。所以，最为关键是下面这四项技术，即应用整体监控、资源和服务调度、状态和数据调度及流量调度，它们是构建分布式系统最最核心的东西。</p>
+
+</div> 
+
+<script>
+    window.onload = detectors();
+</script>
+    <div class="post-footer">
+    <div class="h-line-primary"></div>
+    <nav class="post-nav">
+        <div class="prev-item">
+           
+                <div class="icon arrow-left"></div>
+                <div class="post-link">
+                    <a href="/2023/08/05/笔记-分布式系统关键技术-全栈监控/">Prev</a>
+                </div>
+            
+        </div>
+        <div class="next-item">
+            
+                <div class="icon arrow-right"></div>
+                <div class="post-link">
+                  <a href="/2023/08/03/分布式系统初识/">Next</a>  
+                </div>  
+            
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="post-comment">
+
+     
+
+    
+        <div id="disqus_thread"></div>
+        <script>
+            /**
+            *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+            *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+            
+            var disqus_config = function () {
+                this.page.url = 'https://www.infinitasreset.top/2023/08/05/笔记-分布式系统技术栈/';  // Replace PAGE_URL with your page's canonical URL variable
+                this.page.identifier = '2023/08/05/笔记-分布式系统技术栈/'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                this.language = 'en'
+            };
+            
+            (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+            s.src = 'https://vickworld.disqus.com/';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>   
+     
+    
+    
+
+</div>
+     
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+            
+            
+                Powered by <a href="https://hexo.io/">Hexo</a> & <a href="https://github.com/zoeingwingkei/frame/">Frame</a>
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    
+    
+
+  </body>
+</html>

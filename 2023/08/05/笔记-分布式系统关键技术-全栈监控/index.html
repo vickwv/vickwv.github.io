@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="Vick">
+
+
+
+    <meta name="description" content="InfinitasReset">
+
+
+
+
+
+<title>笔记-分布式系统关键技术-全栈监控 | InfinitasReset</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/menu.js"></script>
+    
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="InfinitasReset" type="application/atom+xml">
+</head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">
+          
+            Frame.
+          
+        </a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/">Home</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/archives/">Archive</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/tags/">Tag</a>
+              </li> 
+                   
+          
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="tag-list">
+            
+                
+                    <span class="post-tag">
+                        <a href="/tags/分布式系统学习笔记/">
+                            分布式系统学习笔记
+                        </a>
+                    </span>    
+                           
+            
+        </div>
+        <div class="post-title">
+            
+            
+                笔记-分布式系统关键技术-全栈监控
+            
+            
+        </div>
+        <span class="post-date">
+            8月 5, 2023
+        </span>
+    </div>
+    <div class="post-img">
+        
+            <div class="h-line-primary"></div>
+              
+    </div>
+</div>
+    <div class="post-content">
+    <blockquote>
+<p>本文为左耳朵耗子《左耳听风》专栏中，关于分布式架构的学习笔记。 </p>
+</blockquote>
+<p>全栈监控，其实是三层监控。在分布式系统中，监控是我们的眼睛，没有监控，我们就不知道系统到底发生了什么，继而无法管理系统。</p>
+<ul>
+<li><strong>基础层</strong>：监控主机和底层资源。比如： CPU、内存、网络吞吐、磁盘IO等。</li>
+<li><strong>中间层</strong>：中间件层监控。比如：Nginx、Redis、MySQL、Kafka 等。</li>
+<li><strong>应用层</strong>：监控应用层的使用。比如：HTTP 访问的吞吐量、响应实践、响应时间、调用链路、性能瓶颈，还包括用户端的监控。<img src="/2023/08/05/笔记-分布式系统关键技术-全栈监控/全栈监控.png" title="全栈监控">
+</li>
+</ul>
+<p>再加上监控的标准化。</p>
+<ul>
+<li>日志数据结构化；</li>
+<li>监控数据格式标准化；</li>
+<li>统一的监控平台；</li>
+<li>统一的日志分析。</li>
+</ul>
+<h2 id="好的监控系统特征"><a href="#好的监控系统特征" class="headerlink" title="好的监控系统特征"></a>好的监控系统特征</h2><p>不好的监控系统存在的问题</p>
+<ul>
+<li><strong>监控数据是隔离开的</strong>。因为公司分工问题，存在各管各的，监控系统之间无法串起来。</li>
+<li><strong>监控的数据项太多</strong>。信息太多等于没有信息，要抓重点。</li>
+</ul>
+<p>好的监控系统应有以下特征：</p>
+<ul>
+<li><strong>关注于整体应用的 SLA</strong>。要从为用户服务的 API 来监控整个系统。</li>
+<li><strong>关联指标聚合</strong>。关联的系统及其指标聚合展示。要展示三层系统数据：基础层、平台中间件层和应用层。<u>最重要的是无论服务运行到哪里，需要把服务的实例和主机关联在一起</u>。</li>
+<li><strong>快速故障定位</strong>。快速定位问题需要对整个分布式系统做一个用户请求跟踪的 trace 监控，我们需要监控到所有的请求在分布式系统中的调用链，这个事最好是做成<u>没有侵入</u>性的</li>
+</ul>
+<p>好的监控系统应有以下两个场景：</p>
+<p><strong>体检</strong></p>
+<ul>
+<li>容量管理。提供一个全局的系统运行时数据的展示，可以让工程师团队知道是否需要增加机器或者其它资源。</li>
+<li>性能管理。可以通过查看大盘，找到系统瓶颈，并有针对性地优化系统和相应代码</li>
+</ul>
+<p><strong>急诊</strong></p>
+<ul>
+<li>定位问题。可以快速地暴露并找到问题的发生点，帮助技术人员诊断问题。</li>
+<li>性能分析。当出现非预期的流量提升时，可以快速地找到系统的瓶颈，并帮助开发人员深入代码。</li>
+</ul>
+<h2 id="如何做出好的监控系统"><a href="#如何做出好的监控系统" class="headerlink" title="如何做出好的监控系统"></a>如何做出好的监控系统</h2><p>一个好的监控系统应实现以下功能：</p>
+<ul>
+<li><p><strong>服务调用链跟踪</strong>。应从对外的 API 开始，将后台的实际服务关联起来，再进一步将这个服务的依赖服务关联起来，直到最后一个服务（如 MySQL、Redis）。最佳实践是 Google Dapper 系统，开源实现为 Zipkin。对于 Java 类的服务，可使用字节码技术进行字节码注入，做到代码无侵入式。</p>
+<img src="/2023/08/05/笔记-分布式系统关键技术-全栈监控/服务调用链.png" title="服务调用链">
+</li>
+<li><p><strong>服务调用时长分布</strong>。使用 Zipkin，可以看到一个服务调用链上的时间分布，这样有助于我们知道最耗时的服务是什么。</p>
+<img src="/2023/08/05/笔记-分布式系统关键技术-全栈监控/服务调用时长.png" title="服务调用时长">
+</li>
+<li><p><strong>服务的 TOP N 视图</strong>。系统请求的排名情况。一般来说，会有三种排名的方法：a）按调用量排名，b) 按请求最耗时排名，c）按热点排名（一个时间段内的请求次数的响应时间和）</p>
+<img src="/2023/08/05/笔记-分布式系统关键技术-全栈监控/服务TOPN视图.png" title="服务TOPN视图">
+</li>
+<li><p><strong>数据库操作关联</strong>。对于 Java 应用，我们可以很方便地通过 JavaAgent 字节码注入技术拿到 JDBC 执行数据库操作的执行时间。对此，我们可以和相关的请求对应起来。</p>
+<img src="/2023/08/05/笔记-分布式系统关键技术-全栈监控/服务字节码.png" title="服务字节码">
+</li>
+<li><p><strong>服务资源跟踪</strong>。服务可能运行在物理机或虚拟机或容器中，需要把服务运行的机器节点上的数据（CPU、MEM、IO、DISK、NETWORK）关联起来。</p>
+</li>
+</ul>
+<p>有了以上数据，我们可以快速定位问题。</p>
+<ol>
+<li>当 SQL过慢，能马上知道会影响哪个 API</li>
+<li>当消息队列阻塞，能马上知道会影响到哪个 API</li>
+<li>当服务响应过慢，能马上关联出来是否在做 Java GC，或是所在计算结点存在资源不足的情况，又或是依赖的服务出现问题。</li>
+</ol>
+<p>一旦发现问题，就方便做系统调度。比如：</p>
+<ul>
+<li>一旦发现某个服务过慢是因为 CPU 使用过多，我们就可以做弹性伸缩。</li>
+<li>一旦发现某个服务过慢是因为 MySQL 出现了一个慢查询，我们就无法在应用层上做弹性伸缩，只能做流量限制，或是降级操作了</li>
+</ul>
+<img src="/2023/08/05/笔记-分布式系统关键技术-全栈监控/服务调用链异常.png" title="服务调用链异常">
+<p>所以，一个分布式系统，或是一个自动化运维系统，或是一个 Cloud Native 的云化系统，<u>最重要的事就是把监控系统做好。在把数据收集好的同时，更重要的是把数据关联好</u>。这样，我们才可能很快地定位故障，进而才能进行自动化调度</p>
+
+</div> 
+
+<script>
+    window.onload = detectors();
+</script>
+    <div class="post-footer">
+    <div class="h-line-primary"></div>
+    <nav class="post-nav">
+        <div class="prev-item">
+           
+                <div class="icon arrow-left"></div>
+                <div class="post-link">
+                    <a href="/2023/08/06/笔记-分布式系统关键技术-服务调度/">Prev</a>
+                </div>
+            
+        </div>
+        <div class="next-item">
+            
+                <div class="icon arrow-right"></div>
+                <div class="post-link">
+                  <a href="/2023/08/05/笔记-分布式系统技术栈/">Next</a>  
+                </div>  
+            
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="post-comment">
+
+     
+
+    
+        <div id="disqus_thread"></div>
+        <script>
+            /**
+            *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+            *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+            
+            var disqus_config = function () {
+                this.page.url = 'https://www.infinitasreset.top/2023/08/05/笔记-分布式系统关键技术-全栈监控/';  // Replace PAGE_URL with your page's canonical URL variable
+                this.page.identifier = '2023/08/05/笔记-分布式系统关键技术-全栈监控/'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                this.language = 'en'
+            };
+            
+            (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+            s.src = 'https://vickworld.disqus.com/';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>   
+     
+    
+    
+
+</div>
+     
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+            
+            
+                Powered by <a href="https://hexo.io/">Hexo</a> & <a href="https://github.com/zoeingwingkei/frame/">Frame</a>
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    
+    
+
+  </body>
+</html>

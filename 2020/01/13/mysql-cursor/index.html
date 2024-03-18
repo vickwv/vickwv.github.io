@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="Vick">
+
+
+
+    <meta name="description" content="InfinitasReset">
+
+
+
+
+
+<title>MySQL-Cursor | InfinitasReset</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/menu.js"></script>
+    
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="InfinitasReset" type="application/atom+xml">
+</head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">
+          
+            Frame.
+          
+        </a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/">Home</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/archives/">Archive</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/tags/">Tag</a>
+              </li> 
+                   
+          
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="tag-list">
+            
+                
+                    <span class="post-tag">
+                        <a href="/tags/MySQL学习笔记/">
+                            MySQL学习笔记
+                        </a>
+                    </span>    
+                           
+            
+        </div>
+        <div class="post-title">
+            
+            
+                MySQL-Cursor
+            
+            
+        </div>
+        <span class="post-date">
+            1月 13, 2020
+        </span>
+    </div>
+    <div class="post-img">
+        
+            <div class="h-line-primary"></div>
+              
+    </div>
+</div>
+    <div class="post-content">
+    <h2 id="1-游标-Cursor"><a href="#1-游标-Cursor" class="headerlink" title="1. 游标(Cursor)"></a>1. 游标(Cursor)</h2><p>游标的作用是从一个结果集中逐条获取记录并操作它们。相比select语句，select语句是直接获取结果集(即集合取数据)，然后在应用程序里操作整个结果集。<strong>集合取数据的关注点</strong>在于想要什么数据，而不关注怎么去获取数据；<strong>游标的关注点</strong>是怎么获取数据，并将游标指针作为遍历依据，遍历到哪行返回哪行数据，然后处理数据，再继续遍历。</p>
+<h3 id="1-1-1-游标的属性"><a href="#1-1-1-游标的属性" class="headerlink" title="1.1.1. 游标的属性"></a>1.1.1. 游标的属性</h3><ol>
+<li>服务器层可能会也可以能不会复制结果集</li>
+<li>不可以更新行数据</li>
+<li>只能向前(一个方向上)遍历，不能跳过行</li>
+</ol>
+<h3 id="1-1-2-游标的使用"><a href="#1-1-2-游标的使用" class="headerlink" title="1.1.2. 游标的使用"></a>1.1.2. 游标的使用</h3><p>游标是一种复合语句结构(就像begin…end)，只能用于stored procedure或stored function中。游标的使用包括声明游标、打开游标、使用游标、关闭游标。</p>
+<p>示例：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">PROCEDURE</span> curdemo()</span><br><span class="line"><span class="keyword">BEGIN</span></span><br><span class="line">  <span class="keyword">DECLARE</span> done <span class="built_in">INT</span> <span class="keyword">DEFAULT</span> <span class="literal">FALSE</span>;</span><br><span class="line">  <span class="keyword">DECLARE</span> a <span class="built_in">CHAR</span>(<span class="number">16</span>);</span><br><span class="line">  <span class="keyword">DECLARE</span> b, c <span class="built_in">INT</span>;</span><br><span class="line">  <span class="keyword">DECLARE</span> cur1 <span class="keyword">CURSOR</span> <span class="keyword">FOR</span> <span class="keyword">SELECT</span> <span class="keyword">id</span>,<span class="keyword">data</span> <span class="keyword">FROM</span> test.t1;</span><br><span class="line">  <span class="keyword">DECLARE</span> cur2 <span class="keyword">CURSOR</span> <span class="keyword">FOR</span> <span class="keyword">SELECT</span> i <span class="keyword">FROM</span> test.t2;</span><br><span class="line">  <span class="keyword">DECLARE</span> CONTINUE <span class="keyword">HANDLER</span> <span class="keyword">FOR</span> <span class="keyword">NOT</span> <span class="keyword">FOUND</span> <span class="keyword">SET</span> done = <span class="literal">TRUE</span>;</span><br><span class="line"></span><br><span class="line">  OPEN cur1;</span><br><span class="line">  OPEN cur2;</span><br><span class="line"></span><br><span class="line">  read_loop: LOOP</span><br><span class="line">    FETCH cur1 INTO a, b;</span><br><span class="line">    FETCH cur2 INTO c;</span><br><span class="line">    IF done THEN</span><br><span class="line">      LEAVE read_loop;</span><br><span class="line">    <span class="keyword">END</span> <span class="keyword">IF</span>;</span><br><span class="line">    IF b &lt; c THEN</span><br><span class="line">      <span class="keyword">INSERT</span> <span class="keyword">INTO</span> test.t3 <span class="keyword">VALUES</span> (a,b);</span><br><span class="line">    ELSE</span><br><span class="line">      <span class="keyword">INSERT</span> <span class="keyword">INTO</span> test.t3 <span class="keyword">VALUES</span> (a,c);</span><br><span class="line">    <span class="keyword">END</span> <span class="keyword">IF</span>;</span><br><span class="line">  <span class="keyword">END</span> <span class="keyword">LOOP</span>;</span><br><span class="line"></span><br><span class="line">  CLOSE cur1;</span><br><span class="line">  CLOSE cur2;</span><br><span class="line"><span class="keyword">END</span>;</span><br></pre></td></tr></table></figure></p>
+<h4 id="1-1-2-1-声明游标"><a href="#1-1-2-1-声明游标" class="headerlink" title="1.1.2.1. 声明游标"></a>1.1.2.1. 声明游标</h4><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">DECLARE</span> cursor_name <span class="keyword">CURSOR</span> <span class="keyword">FOR</span> select_statement</span><br></pre></td></tr></table></figure>
+<p>select_statement是游标需要从中获取的结果集。游标声明必须出现在处理程序声明之前以及变量和条件声明之后。<br>例如：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">declare</span> <span class="keyword">test</span> <span class="keyword">cursor</span> <span class="keyword">for</span> <span class="keyword">select</span> * <span class="keyword">from</span> emplyeels;</span><br></pre></td></tr></table></figure></p>
+<h4 id="1-1-2-2-声明处理程序"><a href="#1-1-2-2-声明处理程序" class="headerlink" title="1.1.2.2. 声明处理程序"></a>1.1.2.2. 声明处理程序</h4><p>一般使用游标都会在循环结构中获取数据存储到变量中。但是取完数据后如何退出循环？</p>
+<p>在游标无法获取到下一行数据的时候，将会返回1329错误码，这个错误码对应的SQL状态为“02000”，它们等价于NOT FOUND。这时可以在声明游标后定义一个handler，用于处理NOT FOUND。</p>
+<p>例如下面是游标NOT FOUND时的CONTINUE处理器，表示当找不到下一行数据时继续执行后面的程序：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">DECLARE</span> CONTINUE <span class="keyword">HANDLER</span> <span class="keyword">FOR</span> <span class="keyword">NOT</span> <span class="keyword">FOUND</span> statment;</span><br></pre></td></tr></table></figure></p>
+<p>对于处理游标的HANDLER，通常statement部分是SET语句，用于设置一些变量。例如：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">declare</span> continue <span class="keyword">handler</span> <span class="keyword">for</span> <span class="keyword">not</span> <span class="keyword">found</span> <span class="keyword">for</span> var_name=<span class="keyword">value</span>;</span><br></pre></td></tr></table></figure></p>
+<p>这时当取不到下一条记录时就设置变量var_name=value。这样就可以通过该变量的值作为退出循环的条件。</p>
+<h4 id="1-1-2-3-打开游标"><a href="#1-1-2-3-打开游标" class="headerlink" title="1.1.2.3. 打开游标"></a>1.1.2.3. 打开游标</h4><p>当声明一个游标后，必须要打开游标才能使用游标。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">open cursor_name;</span><br></pre></td></tr></table></figure>
+<h4 id="1-1-2-4-使用游标"><a href="#1-1-2-4-使用游标" class="headerlink" title="1.1.2.4. 使用游标"></a>1.1.2.4. 使用游标</h4><p>使用fetch into命令将每次fetch到的结果存储到预定义的变量中。这个变量必须是本地变量，不能是用户自定义变量，且这个变量必须定义在游标声明语句之前。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">FETCH CURSOR_NAME INTO VAR_NAME;</span><br></pre></td></tr></table></figure>
+<p>一般游标都会在循环结构中使用，下面是在repeat结构中使用游标：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">repeat </span><br><span class="line">    fetch ... into ...</span><br><span class="line"><span class="keyword">end</span> <span class="keyword">repeat</span>;</span><br></pre></td></tr></table></figure>
+<h4 id="1-1-2-5-关闭游标"><a href="#1-1-2-5-关闭游标" class="headerlink" title="1.1.2.5. 关闭游标"></a>1.1.2.5. 关闭游标</h4><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">CLOSE CURSOR_NAME;</span><br></pre></td></tr></table></figure>
+<p>如果游标没有open，则使用close关闭游标会报错。如果没有显式的关闭游标，游标会在BEGIN…END语句执行结束时自动关闭。</p>
+
+</div> 
+
+<script>
+    window.onload = detectors();
+</script>
+    <div class="post-footer">
+    <div class="h-line-primary"></div>
+    <nav class="post-nav">
+        <div class="prev-item">
+           
+                <div class="icon arrow-left"></div>
+                <div class="post-link">
+                    <a href="/2022/01/04/对象占用多少字节/">Prev</a>
+                </div>
+            
+        </div>
+        <div class="next-item">
+            
+                <div class="icon arrow-right"></div>
+                <div class="post-link">
+                  <a href="/2019/06/19/Innodb-Architecture/">Next</a>  
+                </div>  
+            
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="post-comment">
+
+     
+
+    
+        <div id="disqus_thread"></div>
+        <script>
+            /**
+            *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+            *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+            
+            var disqus_config = function () {
+                this.page.url = 'https://www.infinitasreset.top/2020/01/13/mysql-cursor/';  // Replace PAGE_URL with your page's canonical URL variable
+                this.page.identifier = '2020/01/13/mysql-cursor/'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                this.language = 'en'
+            };
+            
+            (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+            s.src = 'https://vickworld.disqus.com/';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>   
+     
+    
+    
+
+</div>
+     
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+            
+            
+                Powered by <a href="https://hexo.io/">Hexo</a> & <a href="https://github.com/zoeingwingkei/frame/">Frame</a>
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    
+    
+
+  </body>
+</html>

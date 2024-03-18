@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="Vick">
+
+
+
+    <meta name="description" content="InfinitasReset">
+
+
+
+
+
+<title>对象占用多少字节 | InfinitasReset</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/menu.js"></script>
+    
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="InfinitasReset" type="application/atom+xml">
+</head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">
+          
+            Frame.
+          
+        </a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/">Home</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/archives/">Archive</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/tags/">Tag</a>
+              </li> 
+                   
+          
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="tag-list">
+            
+                
+                    <span class="post-tag">
+                        <a href="/tags/Java-学习/">
+                            Java 学习
+                        </a>
+                    </span>    
+                           
+            
+        </div>
+        <div class="post-title">
+            
+            
+                对象占用多少字节
+            
+            
+        </div>
+        <span class="post-date">
+            1月 4, 2022
+        </span>
+    </div>
+    <div class="post-img">
+        
+            <div class="h-line-primary"></div>
+              
+    </div>
+</div>
+    <div class="post-content">
+    <h2 id="1-预备知识："><a href="#1-预备知识：" class="headerlink" title="1. 预备知识："></a>1. 预备知识：</h2><h3 id="1-1-Java-对象模型"><a href="#1-1-Java-对象模型" class="headerlink" title="1.1 Java 对象模型"></a>1.1 Java 对象模型</h3><p>HotSpot JVM 使用名为 oops (Ordinary Object Pointers)  的数据结构来表示对象，对象在内存中分3部分：</p>
+<ul>
+<li>Header: 对象头， 分3部分，mark word、元数据指针、数组长度<ul>
+<li>mark word : 存储 hashcode, locking pattern, locking information, and GC metadata(对象的引用计数数量，便于GC回收)，<strong>这部分在 64 位操作系统下占 8 字节，32 位操作系统下占 4 字节</strong>。 详情可查看：<a href="https://www.baeldung.com/java-memory-layout" target="_blank" rel="noopener">https://www.baeldung.com/java-memory-layout</a></li>
+<li>kclass 指针：对象指向它的类元数据的指针，虚拟机通过这个指针来确定这个对象是哪一个类的实例。<br>这部分就涉及到指针压缩的概念，<strong>在开启指针压缩的状况下占 4 字节，未开启状况下占 8 kb。</strong></li>
+<li>数组长度：这部分只有是数组对象才有，<strong>若是是非数组对象就没这部分。这部分占 4 kb。</strong></li>
+</ul>
+</li>
+<li>Instance Data: 实例数据</li>
+<li>Alignment Padding: 对象对齐填充。Java 对象的大小默认是按照 8 字节对齐，也就是说 Java 对象的大小必须是 8 字节的倍数。若是算到最后不够 8 字节的话，那么就会进行对齐填充。</li>
+</ul>
+<h3 id="1-2-指针压缩"><a href="#1-2-指针压缩" class="headerlink" title="1.2 指针压缩"></a>1.2 指针压缩</h3><p>JVM 为了节省内存，如果 heap size 小于 32GB，JVM会自动开启指针压缩。大于32GB会关闭指针压缩。可以用 <em>-XX:-UseCompressedOops</em> tuning flag 强行开启指针压缩。</p>
+<h3 id="1-3-基本类型占用空间"><a href="#1-3-基本类型占用空间" class="headerlink" title="1.3 基本类型占用空间"></a>1.3 基本类型占用空间</h3><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>占用空间(byte)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>boolean</td>
+<td>1</td>
+</tr>
+<tr>
+<td>byte</td>
+<td>1</td>
+</tr>
+<tr>
+<td>short</td>
+<td>2</td>
+</tr>
+<tr>
+<td>char</td>
+<td>2</td>
+</tr>
+<tr>
+<td>int</td>
+<td>4</td>
+</tr>
+<tr>
+<td>float</td>
+<td>4</td>
+</tr>
+<tr>
+<td>long</td>
+<td>8</td>
+</tr>
+<tr>
+<td>double</td>
+<td>8</td>
+</tr>
+<tr>
+<td>object references</td>
+<td>4，如果未开启指针压缩则为 8</td>
+</tr>
+</tbody>
+</table>
+<h3 id="1-4-GC-的基本知识"><a href="#1-4-GC-的基本知识" class="headerlink" title="1.4 GC 的基本知识"></a>1.4 GC 的基本知识</h3><ul>
+<li>程序中存在一些实例, 称作GC root, 它们不会被GC回收, 常见的例如静态变量, 线程等</li>
+<li>被GC root直接或间接引用的实例会被标记为in use, 它们也不会被GC回收</li>
+</ul>
+<h2 id="2-分析对象大小"><a href="#2-分析对象大小" class="headerlink" title="2. 分析对象大小"></a>2. 分析对象大小</h2><p><strong>以下分析基于 jdk11，64位操作系统处理。</strong></p>
+<p>其实有3个不同的指标来分析对象大小。</p>
+<ul>
+<li>shallow size: 指对象自身占用的内存, 不包括引用对象的实际大小，引用对象只计算引用对象指针大小。</li>
+<li>ratained size: 当对象自身被 GC 回收时, 对象自身 shallow size 加上其引用对象的 shallow size。<ul>
+<li>只有加上能同时被 GC 回收的引用对象。</li>
+<li>怎么判断引用对象能否被回收？</li>
+<li><img src="https://www.yourkit.com/docs/java/help/retained_objects.gif" alt="引用对象图"></li>
+<li>如上图，假设所有对象的 Shallow size 为 1 字节,<ul>
+<li>如果要回收 obj1，obj1 引用了 obj2，obj2 又同时引用了 obj4 和 obj3</li>
+<li>由于 obj3 同时被Gc Roots 引用，所以不能加上 obj3 的 Shallow size</li>
+<li>所以 obj1 的 ratained size:  obj1 + obj2 + obj4 ，3个类的 Shallow size 总和为 3 字节。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>deep size: 与 shallow size 相反，不但要计算实例自身占用的空间，还要计算引用对象的大小，需要递归计算。</li>
+</ul>
+<p>接下来会用代码实际分析对象大小</p>
+<p>代码依赖：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.openjdk.jol<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>jol-core<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>0.10<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>基础代码类：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Course</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Course</span><span class="params">(String name)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.name = name;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">getName</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> name;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="2-1-Shallow-Size"><a href="#2-1-Shallow-Size" class="headerlink" title="2.1 Shallow Size"></a>2.1 Shallow Size</h3><p>计算公式：<strong>对象头 + 实例数据 + 对齐填充字节</strong></p>
+<p>代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ObjectsSizeMain</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        String ds = <span class="string">"Data Structures"</span>;</span><br><span class="line">        Course course = <span class="keyword">new</span> Course(ds);</span><br><span class="line">        System.out.println(<span class="string">"The shallow size is: "</span> + VM.current().sizeOf(course));</span><br><span class="line">        System.out.println(ClassLayout.parseInstance(course).toPrintable());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>实际输出：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">The shallow size is: <span class="number">16</span></span><br><span class="line">org.example.objects_size.Course object internals:</span><br><span class="line"> OFFSET  SIZE               TYPE DESCRIPTION                               VALUE</span><br><span class="line">      <span class="number">0</span>     <span class="number">4</span>                    (object header)                           <span class="number">05</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> (<span class="number">00000101</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span>) (<span class="number">5</span>)</span><br><span class="line">      <span class="number">4</span>     <span class="number">4</span>                    (object header)                           <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> (<span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span>) (<span class="number">0</span>)</span><br><span class="line">      <span class="number">8</span>     <span class="number">4</span>                    (object header)                           <span class="number">48</span> <span class="number">72</span> <span class="number">06</span> <span class="number">00</span> (<span class="number">01001000</span> <span class="number">01110010</span> <span class="number">00000110</span> <span class="number">00000000</span>) (<span class="number">422472</span>)</span><br><span class="line">     <span class="number">12</span>     <span class="number">4</span>   java.lang.String Course.name                               (object)</span><br><span class="line">Instance size: <span class="number">16</span> bytes</span><br><span class="line">Space losses: <span class="number">0</span> bytes internal + <span class="number">0</span> bytes external = <span class="number">0</span> bytes total</span><br></pre></td></tr></table></figure>
+<p>实例数据：Course 类只有一个 String 类的类属性 name ，所以占用 4 字节。</p>
+<p>对象头：Couse 类非数组对象，所以占用 12 字节</p>
+<p>对齐填充字节： 由于对象头+实例数据=16字节，所以不需要填充，填充字节为 0。</p>
+<p><strong>所以 Course 类实例 shallow size 是16字节。</strong></p>
+<h3 id="2-2-Ratained-Size"><a href="#2-2-Ratained-Size" class="headerlink" title="2.2 Ratained Size"></a>2.2 Ratained Size</h3><p>计算公式：<strong>对象自身的 Shallow Size + 引用对象的 Shallow Size</strong></p>
+<p>代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ObjectsSizeMain</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        String ds = <span class="string">"Data Structures"</span>;</span><br><span class="line">        Course course = <span class="keyword">new</span> Course(ds);</span><br><span class="line">        System.out.println(<span class="string">"course size is: "</span> + VM.current().sizeOf(course));</span><br><span class="line">        System.out.println(<span class="string">"name size is: "</span> + VM.current().sizeOf(ds));</span><br><span class="line">        System.out.println(ClassLayout.parseInstance(ds).toPrintable());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Course 自身的 shallow size: 16 字节</p>
+<p>引用对象的 shallow size：Course 的引用对象为 name， 是个 String 类，可以用<code>ClassLayout.parseInstance(course.getName()).toPrintable()</code>分析大小。</p>
+<p>Course.name 的对象大小：</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">java.lang.String object <span class="built_in">int</span>ernals:</span><br><span class="line"> OFFSET  SIZE     TYPE DESCRIPTION                               VALUE</span><br><span class="line">      <span class="number">0</span>     <span class="number">4</span>          (object header)                           <span class="number">05</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> (<span class="number">00000101</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span>) (<span class="number">5</span>)</span><br><span class="line">      <span class="number">4</span>     <span class="number">4</span>          (object header)                           <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> (<span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span>) (<span class="number">0</span>)</span><br><span class="line">      <span class="number">8</span>     <span class="number">4</span>          (object header)                           <span class="number">08</span> <span class="number">18</span> <span class="number">00</span> <span class="number">00</span> (<span class="number">00001000</span> <span class="number">00011000</span> <span class="number">00000000</span> <span class="number">00000000</span>) (<span class="number">6152</span>)</span><br><span class="line">     <span class="number">12</span>     <span class="number">4</span>   byte[] String.value                              [<span class="number">68</span>, <span class="number">97</span>, <span class="number">116</span>, <span class="number">97</span>, <span class="number">32</span>, <span class="number">83</span>, <span class="number">116</span>, <span class="number">114</span>, <span class="number">117</span>, <span class="number">99</span>, <span class="number">116</span>, <span class="number">117</span>, <span class="number">114</span>, <span class="number">101</span>, <span class="number">115</span>]</span><br><span class="line">     <span class="number">16</span>     <span class="number">4</span>      <span class="built_in">int</span> String.hash                               <span class="number">0</span></span><br><span class="line">     <span class="number">20</span>     <span class="number">1</span>     byte String.coder                              <span class="number">0</span></span><br><span class="line">     <span class="number">21</span>     <span class="number">3</span>          (loss due to the next object alignment)</span><br><span class="line">Instance size: <span class="number">24</span> bytes</span><br><span class="line">Space losses: <span class="number">0</span> bytes <span class="built_in">int</span>ernal + <span class="number">3</span> bytes <span class="keyword">external</span> = <span class="number">3</span> bytes total</span><br></pre></td></tr></table></figure>
+<p>可以看到 String 对象大小为 24 字节。其中请求头 12 字节 ，byte[] 数据 4 字节，hash code 4 字节，byte coder 1 字节，对齐填充 3 字节。</p>
+<p><strong>所以 Course 类的 ratained size = 16+24=40 字节。</strong></p>
+<h3 id="2-3-Deep-Size"><a href="#2-3-Deep-Size" class="headerlink" title="2.3 Deep Size"></a>2.3 Deep Size</h3><p>代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ObjectsSizeMain</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        String ds = <span class="string">"Data Structures"</span>;</span><br><span class="line">        Course course = <span class="keyword">new</span> Course(ds);</span><br><span class="line">        System.out.println(<span class="string">"course size is: "</span> + VM.current().sizeOf(course));</span><br><span class="line">        System.out.println(<span class="string">"name size is: "</span> + VM.current().sizeOf(ds));</span><br><span class="line">        System.out.println(ClassLayout.parseInstance(ds.getBytes()).toPrintable());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由上已知，Course 类对象大小是 16 字节，String 类对象大小是 24 字节。只要在加上 String 对象实际数据大小就是 Deep Size。</p>
+<p>可以通过 <code>ClassLayout.parseInstance(ds.getBytes()).toPrintable()</code>获取 String 对象实际数据大小。</p>
+<p>输出：</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">[B object <span class="built_in">int</span>ernals:</span><br><span class="line"> OFFSET  SIZE   TYPE DESCRIPTION                               VALUE</span><br><span class="line">      <span class="number">0</span>     <span class="number">4</span>        (object header)                           <span class="number">01</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> (<span class="number">00000001</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span>) (<span class="number">1</span>)</span><br><span class="line">      <span class="number">4</span>     <span class="number">4</span>        (object header)                           <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> (<span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span>) (<span class="number">0</span>)</span><br><span class="line">      <span class="number">8</span>     <span class="number">4</span>        (object header)                           <span class="number">20</span> <span class="number">08</span> <span class="number">00</span> <span class="number">00</span> (<span class="number">00100000</span> <span class="number">00001000</span> <span class="number">00000000</span> <span class="number">00000000</span>) (<span class="number">2080</span>)</span><br><span class="line">     <span class="number">12</span>     <span class="number">4</span>        (object header)                           <span class="number">0f</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> (<span class="number">00001111</span> <span class="number">00000000</span> <span class="number">00000000</span> <span class="number">00000000</span>) (<span class="number">15</span>)</span><br><span class="line">     <span class="number">16</span>    <span class="number">15</span>   byte [B.&lt;elements&gt;                             N/A</span><br><span class="line">     <span class="number">31</span>     <span class="number">1</span>        (loss due to the next object alignment)</span><br><span class="line">Instance size: <span class="number">32</span> bytes</span><br><span class="line">Space losses: <span class="number">0</span> bytes <span class="built_in">int</span>ernal + <span class="number">1</span> bytes <span class="keyword">external</span> = <span class="number">1</span> bytes total</span><br></pre></td></tr></table></figure>
+<p> String 对象实际数据大小为 32 字节。其中请求头为 16 字节（mark word 8 字节+ kclass 指针 4 字节 + 数据长度 4 字节），实际数据为 15 字节，对齐填充 1 字节。</p>
+<p><strong>所以 Course 类的 deep size 为 16+24+32=72 字节。</strong></p>
+<blockquote>
+<p>注:jdk8 下 String 类的 value 为 char[]，所以要计算 char[]的大小, 由于 char array 为 48 字节，所以 jdk8 下 deep size 为 16+24+48=88 字节</p>
+</blockquote>
+
+</div> 
+
+<script>
+    window.onload = detectors();
+</script>
+    <div class="post-footer">
+    <div class="h-line-primary"></div>
+    <nav class="post-nav">
+        <div class="prev-item">
+           
+                <div class="icon arrow-left"></div>
+                <div class="post-link">
+                    <a href="/2023/05/02/aws-redis-cluster-useage/">Prev</a>
+                </div>
+            
+        </div>
+        <div class="next-item">
+            
+                <div class="icon arrow-right"></div>
+                <div class="post-link">
+                  <a href="/2020/01/13/mysql-cursor/">Next</a>  
+                </div>  
+            
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="post-comment">
+
+     
+
+    
+        <div id="disqus_thread"></div>
+        <script>
+            /**
+            *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+            *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+            
+            var disqus_config = function () {
+                this.page.url = 'https://www.infinitasreset.top/2022/01/04/对象占用多少字节/';  // Replace PAGE_URL with your page's canonical URL variable
+                this.page.identifier = '2022/01/04/对象占用多少字节/'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                this.language = 'en'
+            };
+            
+            (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+            s.src = 'https://vickworld.disqus.com/';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>   
+     
+    
+    
+
+</div>
+     
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+            
+            
+                Powered by <a href="https://hexo.io/">Hexo</a> & <a href="https://github.com/zoeingwingkei/frame/">Frame</a>
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    
+    
+
+  </body>
+</html>

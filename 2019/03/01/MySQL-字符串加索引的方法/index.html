@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="author" content="Vick">
+
+
+
+    <meta name="description" content="InfinitasReset">
+
+
+
+
+
+<title>MySQL-字符串加索引的方法 | InfinitasReset</title>
+
+
+
+    <link rel="icon" href="/favicon.ico">
+
+
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Roboto+Mono&display=swap');
+</style>
+
+
+
+    <!-- stylesheets list from _config.yml -->
+    
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+
+
+
+    <!-- scripts list from _config.yml -->
+    
+    <script src="/js/menu.js"></script>
+    
+
+
+
+
+
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="InfinitasReset" type="application/atom+xml">
+</head>
+  <body>
+    <div class="mask-border">
+    </div>
+
+    <div class="wrapper">
+
+      <div class="header">
+  <div class="flex-container">
+    <div class="header-inner">
+      <div class="site-brand-container">
+        <a href="/">
+          
+            Frame.
+          
+        </a>
+      </div>
+      <div id="menu-btn" class="menu-btn" onclick="toggleMenu()">
+        Menu
+      </div>
+      <nav class="site-nav">
+        <ul class="menu-list">
+          
+            
+              <li class="menu-item">
+                <a href="/">Home</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/archives/">Archive</a>
+              </li> 
+                   
+          
+            
+              <li class="menu-item">
+                <a href="/tags/">Tag</a>
+              </li> 
+                   
+          
+          
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main">
+        <div class="flex-container">
+          <article id="post">
+
+  
+    <div class="post-head">
+    <div class="post-info">
+        <div class="tag-list">
+            
+                
+                    <span class="post-tag">
+                        <a href="/tags/MySQL45讲学习笔记/">
+                            MySQL45讲学习笔记
+                        </a>
+                    </span>    
+                           
+            
+        </div>
+        <div class="post-title">
+            
+            
+                MySQL-字符串加索引的方法
+            
+            
+        </div>
+        <span class="post-date">
+            3月 1, 2019
+        </span>
+    </div>
+    <div class="post-img">
+        
+            <div class="h-line-primary"></div>
+              
+    </div>
+</div>
+    <div class="post-content">
+    <p>假设要维护一个支持邮箱登录的系统，用户表如下定义：</p>
+<figure class="highlight n1ql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; <span class="keyword">create</span> table SUser(</span><br><span class="line">ID bigint unsigned <span class="keyword">primary</span> <span class="keyword">key</span>,</span><br><span class="line">email varchar(<span class="number">64</span>), </span><br><span class="line">... </span><br><span class="line">)engine=innodb;</span><br></pre></td></tr></table></figure>
+<p>由于使用邮箱登录，登录的时候一定要根据邮箱去查询。所以业务代码一定会出现一下语句：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; <span class="keyword">select</span> ID, email <span class="keyword">from</span> SUser <span class="keyword">where</span> email=<span class="string">'zhangssxyz@xxx.com'</span>;</span><br></pre></td></tr></table></figure>
+<p>因此 email 字段必须加上索引，否则这个语句会做全表扫描。</p>
+<h3 id="１．完整索引"><a href="#１．完整索引" class="headerlink" title="１．完整索引"></a>１．完整索引</h3><p>直接给 email 字段加上索引</p>
+<figure class="highlight gams"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; alert <span class="keyword">table</span> Suser <span class="comment">add index index1(email)</span>;</span><br></pre></td></tr></table></figure>
+<p>该语句创建的 index1 索引，包含了每个记录的整个字符串，索引示意图如下：</p>
+<img src="/2019/03/01/MySQL-字符串加索引的方法/完整索引.jpg" title="完整索引示意图">
+<p><strong>index1 执行顺序如下：</strong></p>
+<ul>
+<li>从 index1 索引树找到满足索引值是 <a href="mailto:&#39;zhangssxyz@xxx.com" target="_blank" rel="noopener">&#39;zhangssxyz@xxx.com</a>‘ 的记录，取得 ID2的值；</li>
+<li>到该主键上插到主键值是 ID2 的行，判断 email 的值是正确的，将这行记录加入结果集；</li>
+<li>取 index1 索引树上刚刚查到的位置的下一条记录，发现不满足 <a href="mailto:email=&#39;zhangssxyz@xxx.com" target="_blank" rel="noopener">email=&#39;zhangssxyz@xxx.com</a>‘ 的条件，循环结束。</li>
+</ul>
+<p>这个过程中，只需要回主键索引取一次记录，所以系统只认为扫描了一行。</p>
+<h3 id="２．-前缀索引"><a href="#２．-前缀索引" class="headerlink" title="２． 前缀索引"></a>２． 前缀索引</h3><p>将某个字段的前ｎ位设为索引，下面语句创建 email(6) 索引结构</p>
+<figure class="highlight gams"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; alert <span class="keyword">table</span> SUser <span class="comment">add index index2(email(6))</span>;</span><br></pre></td></tr></table></figure>
+<p>该语句创建的 index2 索引，对于每个记录只取了６个字节，索引示意图如下：</p>
+<img src="/2019/03/01/MySQL-字符串加索引的方法/前缀索引.jpg" title="前缀索引示意图">
+<p><strong>index2 执行顺序如下：</strong></p>
+<ul>
+<li>从 index2 索引树找到满足索引值是 ‘zhangs’ 的记录，找到第一个是 ID1;</li>
+<li>到主键上查到主键值是 ID1 的行，判断 email 的值不是 <a href="mailto:&#39;zhangssxyz@xxx.com" target="_blank" rel="noopener">&#39;zhangssxyz@xxx.com</a>‘，这行丢弃</li>
+<li>取 index2 上刚刚查到的位置的下一条记录，发现仍然是 ‘zhangs’, 取出 ID2，再到 ID 索引上取整行然后判断，这次值对了，将这行记录加入结果集；</li>
+<li>重复上一步，直到在 index2 上取到的值不是 ‘zhangs’ 时，循环结束。</li>
+</ul>
+<p>这个过程中，要回主键索引取 4 次判断，也就是扫描了 4 行。</p>
+<p>通过对比，可以发现，使用前缀索引后，可能会导致查询语句读数据的次数变多。</p>
+<p>但是，对于这个查询语句来说，如果定义的 index2 不是 email(6) 而是 email(7)，也就是说取 email 字段前７个字节来构建索引的话，即满足前桌 ‘zhangs’ 的记录只有一个，也能够直接插到 ID2，只扫描一行就结束了。</p>
+<p>也就是说<strong>使用前缀索引，定义好长度就可以做到既节省空间，又不用额外增加太多的查询成本。</strong></p>
+<p><strong>如何确认前缀索引的长度？</strong></p>
+<p>答案：区分度，区分度越高意味着重复值的键值越少。因此可以统计索引有多少不同的值来判断要使用多长的前缀。</p>
+<p>首先，使用下面这个语句，算出这个列上有多少不同的值：</p>
+<figure class="highlight n1ql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; <span class="keyword">select</span> <span class="built_in">count</span>(<span class="keyword">distinct</span> email) <span class="keyword">as</span> L <span class="keyword">from</span> SUser;</span><br></pre></td></tr></table></figure>
+<p>然后，依次选取不同长度的前缀来看这个值，比如我们要看一下4~7 个值字节的前缀索引：</p>
+<figure class="highlight n1ql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; <span class="keyword">select</span></span><br><span class="line">true<span class="built_in">count</span>(<span class="keyword">distinct</span> <span class="keyword">left</span>(email, <span class="number">4</span>) <span class="keyword">as</span> L4)</span><br><span class="line">true<span class="built_in">count</span>(<span class="keyword">distinct</span> <span class="keyword">left</span>(email, <span class="number">5</span>) <span class="keyword">as</span> L5)</span><br><span class="line">true<span class="built_in">count</span>(<span class="keyword">distinct</span> <span class="keyword">left</span>(email, <span class="number">6</span>) <span class="keyword">as</span> L6)</span><br><span class="line">true<span class="built_in">count</span>(<span class="keyword">distinct</span> <span class="keyword">left</span>(email, <span class="number">7</span>) <span class="keyword">as</span> L7)</span><br><span class="line"><span class="keyword">from</span> Suser;</span><br></pre></td></tr></table></figure>
+<p>使用前缀索引很有可能损失区分度，所以需要预先设定一个损失比例，比如 5%。然后在返回的 L4~L7 中，找出不小于 L*95% 的值，假设这里 L6、L7 都满足，可以选择前缀长度为6。</p>
+<p><strong>前缀索引对覆盖索引的影响</strong></p>
+<p>前缀索引不仅仅可能会增加扫描行数，还有可能影响性能。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; <span class="keyword">select</span> id,email <span class="keyword">from</span> SUser <span class="keyword">where</span> email =<span class="string">'zhangssxyz@email.com'</span>;</span><br></pre></td></tr></table></figure>
+<p>以上这个语句仅仅返回 id 和 email 字段。</p>
+<p>所以，如果使用 index1 的话，可以利用覆盖索引，从 index1 查询到结果直接返回即可，无需回到 ID 索引再去查一次。而如果使用 index2 的话，就不得不回到 ID 索引再去判断 email 字段的值。</p>
+<p>即使将 index2 的定义修改为 email(18) 的前缀索引，这时候虽然 index2 包含了所有的信息，但是 InnoDB还是要回到 ID 索引再查一次，因为系统并不确定前缀索引的定义是否截断了完整信息。</p>
+<p>也就是说，<strong>使用前缀索引就用不上覆盖索引对查询性能的优化。</strong></p>
+<h3 id="3-其他方式"><a href="#3-其他方式" class="headerlink" title="3. 其他方式"></a>3. 其他方式</h3><p>对于邮箱这样的字段来说，使用前缀索引的效果可能还不粗，但是遇到前缀的区分度不够好的情况，该怎么办？</p>
+<p>比如，身份证号码，共 18 位，其中前 6 位是地址码，所以同一个县的人身份证号前6位一般是相同的，因此如果对身份证号做长度为6的前缀索引，区分度极低。</p>
+<p>按照前面的方法，可能需要创建长度为12以上的前缀索引，才能满足区分度要求。但是索引选取的越长，占用的磁盘空间越大，相同的数据页能放下的索引的值越少，搜索效率也越低。</p>
+<p>那么如果确认业务需求只按照身份证号进行等值查询的需求，可以使用以下方法</p>
+<p><strong>第一种倒序存储</strong> (如果存储身份证号码的时候把它倒过来存，每次查询可以这么写)</p>
+<figure class="highlight oxygene"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; <span class="keyword">select</span> field_list <span class="keyword">from</span> t <span class="keyword">where</span> id_card = <span class="keyword">reverse</span>(<span class="string">'input_id_card_string'</span>);</span><br></pre></td></tr></table></figure>
+<p>由于身份证最后6位没有地址码这样重复的逻辑，最后6位很有可能提供了足够的区分度，</p>
+<p><strong>第二种使用 hash 字段</strong> (在表上再创建一个整数字段，来保存身份证的校验码，同事在这个字段上创建索引)</p>
+<figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; <span class="keyword">alter</span> <span class="keyword">table</span> t <span class="keyword">add</span> id_card_crc <span class="type">int</span> unsigned, <span class="keyword">add</span> <span class="keyword">index</span>(id_card_crc);</span><br></pre></td></tr></table></figure>
+<p>然后每次插入新记录的时候，都使用 crc32() 这个函数得到校验码填到这个新字段，由于校验码可能存在冲突，也就是说两个不同的身份证号通过 crc32() 函数得到的结果可能是相同的，所以查询语句 where 部分要判断 id_card 的值是否精确相同。</p>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; select field_list <span class="keyword">from</span> t where <span class="attribute">id_card_crc</span>=crc32('input_id_card_string') <span class="keyword">and</span> <span class="attribute">id_card</span>=<span class="string">'input_id_card_string'</span>;</span><br></pre></td></tr></table></figure>
+<p>这样索引长度变成了 4 个字节，比原来小了很多。</p>
+<p><strong>两种方法的异同点</strong></p>
+<p>同：</p>
+<ul>
+<li>不支持范围查询，只支持等值查询</li>
+</ul>
+<p>异：</p>
+<ul>
+<li>占用空间上，倒序存储方式在主键索引上不会消耗额外的存储空间，而 hash 字段防范需要增加一个字段。</li>
+<li>CPU 消耗方面，倒序方式每次读写，都需要额外调用一次 reverse 函数，而 hash 字段的方式需要额外调用一次 crc32() 函数。如果从两个函数的计算复杂度来看的话， reverse 函数额外消耗的 CPU 资源会更小点。</li>
+<li>从查询效率上看，使用 hash 字段方式的查询性能相对更稳定一些。因为 crc32 算出来的值虽然有冲突的概率，但是概率非常小，可以认为每次查询的平均扫描行接近1。而倒序存储的方式毕竟还是用的前缀索引的方式，也就是说会增加扫描行数。</li>
+</ul>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>字符串字段创建索引总共有4种方式</p>
+<ol>
+<li>直接创建完整索引，这样可能比较占用空间；</li>
+<li>创建前缀索引，节省空间，但是会增加查询扫描次数，并且不能使用覆盖索引</li>
+<li>倒序存储，再创建前缀索引，用于绕过字符串本身前缀的区分度不够的问题</li>
+<li>创建 hash 字段索引，查询性能稳定，有额外的存储和计算消耗，跟第三种方式一样，都不支持范围扫描。</li>
+</ol>
+
+</div> 
+
+<script>
+    window.onload = detectors();
+</script>
+    <div class="post-footer">
+    <div class="h-line-primary"></div>
+    <nav class="post-nav">
+        <div class="prev-item">
+           
+                <div class="icon arrow-left"></div>
+                <div class="post-link">
+                    <a href="/2019/03/05/MySQL-更新语句怎么执行的/">Prev</a>
+                </div>
+            
+        </div>
+        <div class="next-item">
+            
+                <div class="icon arrow-right"></div>
+                <div class="post-link">
+                  <a href="/2018/01/03/Inversion-of-Control-Container/">Next</a>  
+                </div>  
+            
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="post-comment">
+
+     
+
+    
+        <div id="disqus_thread"></div>
+        <script>
+            /**
+            *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+            *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
+            
+            var disqus_config = function () {
+                this.page.url = 'https://www.infinitasreset.top/2019/03/01/MySQL-字符串加索引的方法/';  // Replace PAGE_URL with your page's canonical URL variable
+                this.page.identifier = '2019/03/01/MySQL-字符串加索引的方法/'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                this.language = 'en'
+            };
+            
+            (function() { // DON'T EDIT BELOW THIS LINE
+            var d = document, s = d.createElement('script');
+            s.src = 'https://vickworld.disqus.com/';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>   
+     
+    
+    
+
+</div>
+     
+  
+</article>
+        </div>
+      </div>
+      
+      <div class="footer">
+    <div class="flex-container">
+        <div class="footer-text">
+            
+            
+            
+                Powered by <a href="https://hexo.io/">Hexo</a> & <a href="https://github.com/zoeingwingkei/frame/">Frame</a>
+                
+        </div>
+    </div>
+</div>
+
+    </div>
+
+    
+    
+
+  </body>
+</html>
